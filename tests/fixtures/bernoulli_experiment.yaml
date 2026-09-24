@@ -1,0 +1,41 @@
+schema_version: "1.0"
+id: bernoulli-fixture
+description: Bernoulli fixture with a module adapter and an observation model.
+model: analytic-bernoulli
+adapter: module
+parameters:
+  - name: p
+    role: task_relevant
+    unit: probability
+    bounds: [0.001, 0.999]
+    scale: 1.0
+    step: 0.0005
+    center: 0.3
+stencil:
+  kind: central
+  step_scales: [1.0, 0.5]
+cases:
+  - id: case-1
+    state: fixture state
+theta_points:
+  - {p: 0.3}
+budget:
+  max_attempts: 40
+  repeats: 1
+seed: 7
+renderer:
+  kind: text
+  template: "p={p:.6f}"
+questions:
+  - id: Y
+    primitive: noul
+    outcomes:
+      - {id: "false", description: "no"}
+      - {id: "true", description: "yes"}
+node_questions:
+  Y: Y
+provider:
+  kind: module
+  entrypoint: tests.fixtures.bernoulli_adapter:build_adapter
+  system_id: bernoulli-fixture
+  routing_semantics: sampled_outcome

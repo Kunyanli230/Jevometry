@@ -1,0 +1,12 @@
+observable: Bernoulli outcome Y
+observation_unit: one independent Bernoulli draw
+sampling: iid
+sample_size: 100
+relation_to_jev: synthetic_simulation
+identifiability_source: analytic
+fixed_support: true
+differentiable: true
+locally_identifiable: true
+estimand: p
+notes:
+  - synthetic validation of the declared observation model

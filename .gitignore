@@ -1,0 +1,25 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.env
+.env.*
+!.env.example
+runs/
+.jevometry-cache/
+dist/
+build/
+*.egg-info/
+
+# Generated example outputs
+examples/*/output/
+
+# Local implementation planning (not release documentation)
+JEVOMETRY_IMPLEMENTATION_PLAN.md

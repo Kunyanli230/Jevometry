@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jevometry report · {{ model.identity.experiment_id }} · {{ model.identity.run_id }}</title>
+<script>{{ plotly_js }}</script>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0 auto; max-width: 1100px; padding: 24px; color: #1c1c1c; }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; margin-top: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.3rem; }
+  h3 { font-size: 1rem; margin-bottom: 0.3rem; }
+  table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem; font-size: 0.9rem; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f5f7fa; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; }
+  pre { background: #f7f7f9; padding: 12px; overflow-x: auto; border-radius: 6px; }
+  .status-ok { color: #1c7a3d; font-weight: 600; }
+  .status-bad { color: #b3261e; font-weight: 600; }
+  .status-conditional { color: #a15c00; font-weight: 600; }
+  .meta { color: #555; font-size: 0.9rem; }
+  .chart { width: 100%; height: 420px; }
+  .chart-controls { margin: 0.5rem 0; }
+  .note { background: #fff8e6; border-left: 4px solid #d17b0f; padding: 8px 12px; margin: 0.5rem 0; }
+  details { margin: 0.5rem 0; }
+  summary { cursor: pointer; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #eef2f7; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<h1>Jevometry analysis report</h1>
+<p class="meta">Generated {{ generated_utc }} · offline, self-contained, no telemetry.</p>
+
+<h2>1. Experiment identity and provenance</h2>
+<table>
+  <tr><th>Run id</th><td>{{ model.identity.run_id }}</td></tr>
+  <tr><th>Experiment</th><td>{{ model.identity.experiment_id }}</td></tr>
+  <tr><th>Analysis revision</th><td>{{ model.identity.analysis_revision }}</td></tr>
+  <tr><th>Analysis object</th><td>{{ model.identity.analysis_object }}</td></tr>
+  <tr><th>Provider mode</th><td>{{ model.identity.provider_mode }}{% if model.identity.live %} (live){% endif %}</td></tr>
+  <tr><th>Requested model</th><td>{{ model.identity.model or "n/a" }}</td></tr>
+  <tr><th>Adapter</th><td>{{ model.identity.adapter or "n/a" }}</td></tr>
+  <tr><th>Seed</th><td>{{ model.identity.seed }}</td></tr>
+  <tr><th>Started / finished</th><td>{{ model.identity.started_utc }} → {{ model.identity.finished_utc }}</td></tr>
+</table>
+<h3>Parameters</h3>
+<table>
+  <tr><th>Name</th><th>Role</th><th>Unit</th><th>Bounds</th><th>Scale</th><th>Step</th></tr>
+  {% for parameter in model.parameters %}
+  <tr>
+    <td>{{ parameter.name }}</td><td>{{ parameter.role }}</td><td>{{ parameter.unit }}</td>
+    <td>[{{ parameter.bounds[0] }}, {{ parameter.bounds[1] }}]</td>
+    <td>{{ parameter.scale }}</td><td>{{ parameter.step }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<h3>Sampling contract</h3>
+{% if model.identity.sampling_contract %}
+<pre>{{ model.identity.sampling_contract | tojson(indent=2) }}</pre>
+{% else %}
+<p class="note">No sampling contract is declared. No inferential CRLB is computed or implied.</p>
+{% endif %}
+<h3>Acquisition plan and budget</h3>
+<pre>{{ model.identity.budget | tojson(indent=2) }}</pre>
+
+<h2>2. Capability matrix</h2>
+<table>
+  <tr><th>Capability</th><th>Status</th><th>Analysis object</th><th>Reason</th><th>Remedy</th></tr>
+  {% for entry in model.capability %}
+  <tr>
+    <td>{{ entry.capability }}</td>
+    <td class="status-{{ 'ok' if entry.status == 'ok' else ('conditional' if entry.status == 'conditional' else 'bad') }}">{{ entry.status }}</td>
+    <td>{{ entry.analysis_object or "" }}</td>
+    <td><code>{{ entry.reason_code or "" }}</code></td>
+    <td>{{ entry.remedy or "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>3. Data completeness</h2>
+<table>
+  <tr><th>Total traces</th><td>{{ model.completeness.total_traces }}</td></tr>
+  <tr><th>Failed traces</th><td>{{ model.completeness.failed_traces }}</td></tr>
+  <tr><th>Incomplete</th><td>{{ model.completeness.incomplete }}</td></tr>
+</table>
+{% for note in model.completeness.notes %}
+<p class="note">{{ note }}</p>
+{% endfor %}
+{% for item in model.diagnostics %}
+<p class="note"><strong>{{ item.code }}</strong> ({{ item.severity }}): {{ item.message }}</p>
+{% endfor %}
+
+<h2>4. Probability distributions</h2>
+<p class="meta">Charts show validated working-simplex copies; raw totals and corrections are in the node tables below.</p>
+<div id="distributions-section"></div>
+
+<h2>5. Fisher information, spectrum and numerical stability</h2>
+<div id="fisher-section"></div>
+<div id="spectrum-section"></div>
+<div id="stability-section"></div>
+<p class="meta">The unit-ball plot below is a geometric object under the Fisher metric; it is not a confidence ellipse.</p>
+<div id="local_metric-section"></div>
+
+<h2>6. Parameter sweeps</h2>
+<div id="sweep-section"></div>
+
+<h2>7. Node details</h2>
+<table>
+  <tr><th>Node</th><th>Point</th><th>Support</th><th>Raw total</th><th>Derived</th><th>Status</th><th>Reason</th></tr>
+  {% for view in model.node_views %}
+  <tr>
+    <td>{{ view.node_id }}</td>
+    <td>{{ view.point_id }}</td>
+    <td>{{ view.support | join(", ") }}</td>
+    <td>{{ view.distribution.raw_total if view.distribution else "" }}</td>
+    <td>{{ view.distribution.derived if view.distribution else "" }}</td>
+    <td class="status-{{ 'ok' if view.status == 'ok' else ('conditional' if view.status == 'conditional' else 'bad') }}">{{ view.status }}</td>
+    <td><code>{{ view.reason_code or "" }}</code></td>
+  </tr>
+  {% endfor %}
+</table>
+<h3>Distances between consecutive theta points</h3>
+<table>
+  <tr><th>Metric</th><th>Value</th><th>Units</th><th>Status</th></tr>
+  {% for distance in model.distances %}
+  <tr><td><code>{{ distance.name }}</code></td><td>{{ distance.value }}</td><td>{{ distance.units }}</td><td>{{ distance.status }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>8. System composition</h2>
+{% if model.system %}
+<div id="system-section"></div>
+<table>
+  <tr><th>Mode</th><td>{{ model.system.mode }}</td></tr>
+  <tr><th>Nodes</th><td>{{ model.system.node_order | join(", ") }}</td></tr>
+  <tr><th>Routing semantics</th><td>{{ model.system.routing_semantics }}</td></tr>
+  <tr><th>Action distribution available</th><td>{{ model.system.action_distribution_available }}</td></tr>
+  <tr><th>Status</th><td>{{ model.system.status }}</td></tr>
+  <tr><th>Reason</th><td><code>{{ model.system.reason_code or "" }}</code></td></tr>
+</table>
+<h3>System metrics</h3>
+<table>
+  <tr><th>Metric</th><th>Value</th><th>Status</th><th>Reason</th></tr>
+  {% for metric in model.system.metrics %}
+  <tr><td><code>{{ metric.name }}</code></td><td>{{ metric.value }}</td><td>{{ metric.status }}</td><td>{{ metric.reason_code or "" }}</td></tr>
+  {% endfor %}
+</table>
+{% if model.system.information_loss %}
+<h3>Aggregation information loss</h3>
+<table>
+  <tr><th>Metric</th><th>Value</th><th>Status</th><th>Reason</th></tr>
+  {% for metric in model.system.information_loss %}
+  <tr><td><code>{{ metric.name }}</code></td><td>{{ metric.value }}</td><td>{{ metric.status }}</td><td>{{ metric.reason_code or "" }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% if model.system.redundancy %}
+<h3>Redundancy: independent sum versus declared joint</h3>
+<table>
+  <tr><th>Case</th><th>Independent sum trace</th><th>Joint trace</th><th>Difference</th><th>Status</th></tr>
+  {% for case in model.system.redundancy %}
+  <tr>
+    <td>{{ case.name }}</td>
+    <td>{{ case.independent_sum_trace }}</td>
+    <td>{{ case.joint_trace }}</td>
+    <td>{{ case.difference }}</td>
+    <td>{{ case.status }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% else %}
+<p class="note">No system model is declared. No system Fisher information or mutual information is reported.</p>
+{% endif %}
+
+<h2>9. CRLB and inference eligibility</h2>
+{% if model.inference %}
+<pre>{{ model.inference | tojson(indent=2) }}</pre>
+{% else %}
+<p class="note">No inference result is attached to this analysis. Run <code>jevometry infer</code> with a complete sampling contract.</p>
+{% endif %}
+
+<h2>10. Machine-readable summary</h2>
+<details>
+<summary>Analysis JSON (no raw sample text)</summary>
+<pre>{{ model_json }}</pre>
+</details>
+
+<script>
+const CHARTS = [
+{% for chart in charts %}
+  {group: {{ chart.group | tojson }}, id: {{ chart.id | tojson }}, title: {{ chart.title | tojson }}, figure: JSON.parse({{ chart.json | tojson }})},
+{% endfor %}
+];
+
+function renderGroup(group, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const items = CHARTS.filter((chart) => chart.group === group);
+  if (items.length === 0) return;
+  const select = document.createElement("select");
+  select.className = "chart-controls";
+  items.forEach((item, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = item.title;
+    select.appendChild(option);
+  });
+  const holder = document.createElement("div");
+  holder.className = "chart";
+  holder.id = containerId + "-holder";
+  container.appendChild(select);
+  container.appendChild(holder);
+  function draw(index) {
+    const item = items[index];
+    Plotly.newPlot(holder, item.figure.data, item.figure.layout, {responsive: true});
+  }
+  select.addEventListener("change", () => draw(Number(select.value)));
+  draw(0);
+}
+
+renderGroup("distributions", "distributions-section");
+renderGroup("fisher", "fisher-section");
+renderGroup("spectrum", "spectrum-section");
+renderGroup("stability", "stability-section");
+renderGroup("local_metric", "local_metric-section");
+renderGroup("sweep", "sweep-section");
+renderGroup("system", "system-section");
+</script>
+</body>
+</html>

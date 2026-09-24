@@ -1,0 +1,85 @@
+schema_version: "1.0"
+id: ticket-sensitivity
+description: >
+  Synthetic ticket-triage sensitivity over amount (USD) and wait time (hours).
+  The provider is a module adapter with a deterministic policy; probabilities
+  are reported distributions, not action frequencies.
+model: synthetic-ticket
+adapter: module
+parameters:
+  - name: amount
+    role: task_relevant
+    unit: USD
+    bounds: [10.0, 1000.0]
+    scale: 100.0
+    step: 1.0
+    center: 250.0
+    description: Requested refund or charge amount.
+  - name: wait_hours
+    role: task_relevant
+    unit: hours
+    bounds: [0.0, 48.0]
+    scale: 12.0
+    step: 0.25
+    center: 8.0
+    description: Time since the ticket was opened.
+stencil:
+  kind: central
+  step_scales: [1.0, 0.5]
+  relative_stability_threshold: 0.10
+cases:
+  - id: ticket-1
+    state:
+      ticket: Synthetic ticket fixture; no customer data is present.
+      channel: email
+theta_points:
+  - {amount: 100.0, wait_hours: 2.0}
+  - {amount: 250.0, wait_hours: 8.0}
+  - {amount: 600.0, wait_hours: 30.0}
+budget:
+  max_attempts: 60
+  max_input_tokens: 200000
+  max_concurrency: 2
+  request_timeout_s: 45.0
+  experiment_timeout_s: 600.0
+  repeats: 1
+seed: 20260924
+renderer:
+  kind: structured
+  version: ticket-v1
+  template:
+    amount_usd: "{amount:.2f}"
+    wait_hours: "{wait_hours:.2f}"
+  static:
+    ticket: Synthetic ticket fixture; no customer data is present.
+    channel: email
+questions:
+  - id: request_type
+    primitive: choice
+    instructions: What kind of request is this?
+    outcomes:
+      - {id: billing, description: Billing question}
+      - {id: technical, description: Technical issue}
+      - {id: refund, description: Refund request}
+  - id: needs_escalation
+    primitive: noul
+    instructions: Does this ticket need escalation?
+    outcomes:
+      - {id: "false", description: "no"}
+      - {id: "true", description: "yes"}
+  - id: impact
+    primitive: score
+    instructions: How severe is the impact?
+    outcomes:
+      - {id: "0", description: low, numeric: 0.0}
+      - {id: "1", description: medium, numeric: 1.0}
+      - {id: "2", description: high, numeric: 2.0}
+node_questions:
+  request_type: request_type
+  needs_escalation: needs_escalation
+  impact: impact
+provider:
+  kind: module
+  entrypoint: examples.jev_ticket_sensitivity.ticket_system:build_adapter
+  system_id: ticket-sensitivity
+  routing_semantics: deterministic_policy

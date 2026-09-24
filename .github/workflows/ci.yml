@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Ruff
+        run: uv run ruff check src tests examples
+      - name: mypy
+        run: uv run mypy
+      - name: pytest
+        run: uv run pytest --cov=jevometry --cov-branch --cov-report=term-missing
+      - name: Build
+        run: uv build
+
+  offline-examples:
+    name: Offline examples and install check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Run examples offline
+        run: |
+          uv run python examples/analytic_geometry/run.py
+          uv run python examples/system_information/run.py
+          uv run python examples/jev_ticket_sensitivity/run.py
+      - name: Verify reports are self-contained
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          reports = list(Path("examples").glob("*/output/**/report.html"))
+          assert reports, "no reports were generated"
+          for report in reports:
+              html = report.read_text(encoding="utf-8")
+              assert "Plotly.newPlot" in html
+              assert not re.search(r'src="https?://', html)
+              assert not re.search(r'href="https?://', html)
+          print(f"checked {len(reports)} reports")
+          PY
+      - name: Build wheel and sdist
+        run: uv build
+      - name: Install the wheel in a clean environment
+        run: |
+          uv venv /tmp/clean-env
+          /tmp/clean-env/bin/python -m ensurepip --upgrade
+          /tmp/clean-env/bin/python -m pip install dist/*.whl
+          cd /tmp
+          /tmp/clean-env/bin/python -c "import jevometry; print(jevometry.__version__)"
+          /tmp/clean-env/bin/jevometry doctor
