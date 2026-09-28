@@ -9,6 +9,8 @@ jobs:
   test:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
@@ -19,13 +21,16 @@ jobs:
         with:
           enable-cache: true
       - name: Install dependencies
-        run: uv sync --locked
+        run: uv sync --locked --extra live
+      - name: Verify Python version
+        run: |
+          uv run --extra live python -c "import os, sys; expected = tuple(map(int, os.environ['UV_PYTHON'].split('.'))); assert sys.version_info[:2] == expected, (sys.version, expected)"
       - name: Ruff
-        run: uv run ruff check src tests examples
+        run: uv run --extra live ruff check src tests examples
       - name: mypy
-        run: uv run mypy
+        run: uv run --extra live mypy
       - name: pytest
-        run: uv run pytest --cov=jevometry --cov-branch --cov-report=term-missing
+        run: uv run --extra live pytest --cov=jevometry --cov-branch --cov-report=term-missing
       - name: Build
         run: uv build
 
