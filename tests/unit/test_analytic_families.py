@@ -24,6 +24,8 @@ from jevometry.adapters.analytic import (
     softmax_node,
 )
 from jevometry.schemas.common import MetricStatus, Primitive
+from jevometry.schemas.joint import ConstructionMode
+from jevometry.schemas.system import CompositionMode
 from jevometry.systems.tree import ConditionalNode, ConditionalTree
 
 
@@ -161,3 +163,25 @@ def test_adapter_without_likelihood_returns_none() -> None:
     assert adapter.likelihood_model("Y") is None
     with pytest.raises(ValueError):
         AnalyticAdapter(system_id="s", nodes={})
+
+
+@pytest.mark.parametrize(
+    ("construction", "expected"),
+    [
+        (ConstructionMode.EXPLICIT, CompositionMode.EXPLICIT_JOINT),
+        (ConstructionMode.DECLARED_PRODUCT, CompositionMode.DECLARED_PRODUCT),
+        (ConstructionMode.CONDITIONAL_TREE, CompositionMode.CONDITIONAL_TREE),
+        (ConstructionMode.ESTIMATED, CompositionMode.EXPLICIT_JOINT),
+    ],
+)
+def test_adapter_preserves_joint_construction_mode(
+    construction: ConstructionMode, expected: CompositionMode
+) -> None:
+    model = single_node_joint_model(bernoulli_node("Y"))
+    model.construction_mode = construction
+    adapter = AnalyticAdapter(system_id="s", nodes={"Y": bernoulli_node("Y")}, joint_model=model)
+    spec = adapter.describe()
+    assert spec.composition_mode is expected
+    assert spec.composition_assumptions.conditional_independence is (
+        construction is ConstructionMode.DECLARED_PRODUCT
+    )

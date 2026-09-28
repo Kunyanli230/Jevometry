@@ -79,9 +79,10 @@ jevometry doctor
 | 4 | Provider or authentication failure |
 | 5 | A core analysis the user requested cannot be computed |
 
-## Three complete examples
+## Four complete examples
 
 ```bash
+uv run python examples/three_agent_cleaning/run.py
 uv run python examples/analytic_geometry/run.py
 uv run python examples/system_information/run.py
 uv run python examples/jev_ticket_sensitivity/run.py
@@ -90,6 +91,8 @@ uv run python examples/jev_ticket_sensitivity/run.py
 Each writes runs and self-contained HTML reports under `examples/*/output/`.
 The ticket example also supports `--live` (requires `TYPESAFE_API_KEY`) and
 `--replay RUN_DIRECTORY`.
+The [three-agent cleaning example](../examples/three_agent_cleaning/README.md)
+shows a declared product model and a fixed final-action mapping, entirely offline.
 
 ## Next steps
 

@@ -132,8 +132,7 @@ class AnalyticNode:
         vector = np.asarray(self.probability_function(theta), dtype=np.float64)
         if vector.shape != (len(self.support),):
             raise ValueError(
-                f"node {self.node_id!r} returned width {vector.shape} for support "
-                f"{self.support!r}"
+                f"node {self.node_id!r} returned width {vector.shape} for support {self.support!r}"
             )
         return vector
 
@@ -351,16 +350,15 @@ def bernoulli_pair_joint_model(
             grid = [(*prefix, outcome) for prefix in grid for outcome in outcomes]
         return grid
 
-    def probability_function(theta: Mapping[str, float]) -> tuple[list[tuple[str, ...]], FloatArray]:
+    def probability_function(
+        theta: Mapping[str, float],
+    ) -> tuple[list[tuple[str, ...]], FloatArray]:
         p = float(theta[parameter])
         if mode == "deterministic_copy":
             return [("0", "0"), ("1", "1")], np.asarray([1.0 - p, p], dtype=np.float64)
         grid = independent_grid()
         masses = np.asarray(
-            [
-                math.prod(p if outcome == "1" else (1.0 - p) for outcome in path)
-                for path in grid
-            ],
+            [math.prod(p if outcome == "1" else (1.0 - p) for outcome in path) for path in grid],
             dtype=np.float64,
         )
         return grid, masses
@@ -373,9 +371,7 @@ def bernoulli_pair_joint_model(
         jacobian = np.zeros((len(grid), 1), dtype=np.float64)
         for row, path in enumerate(grid):
             probability = math.prod(p if outcome == "1" else (1.0 - p) for outcome in path)
-            score = sum(
-                (1.0 / p) if outcome == "1" else (-1.0 / (1.0 - p)) for outcome in path
-            )
+            score = sum((1.0 / p) if outcome == "1" else (-1.0 / (1.0 - p)) for outcome in path)
             jacobian[row, 0] = probability * score
         return jacobian
 
@@ -389,7 +385,8 @@ def bernoulli_pair_joint_model(
         if mode == "independent"
         else ConstructionMode.EXPLICIT,
         assumptions=[
-            "declared deterministic copy" if mode == "deterministic_copy"
+            "declared deterministic copy"
+            if mode == "deterministic_copy"
             else f"declared independent draws (n={draws})"
         ],
     )
@@ -400,7 +397,9 @@ def conditional_tree_joint_model(
 ) -> AnalyticJointModel:
     """Exact joint model of a declared finite conditional tree."""
 
-    def probability_function(theta: Mapping[str, float]) -> tuple[list[tuple[str, ...]], FloatArray]:
+    def probability_function(
+        theta: Mapping[str, float],
+    ) -> tuple[list[tuple[str, ...]], FloatArray]:
         enumeration = enumerate_tree(tree, theta)
         if enumeration.status is not MetricStatus.OK:
             raise ValueError(
@@ -508,6 +507,16 @@ class AnalyticAdapter:
             lambda theta, case: dict(theta), version="analytic-identity"
         )
         self.routing_semantics = routing_semantics
+        composition_mode = (
+            {
+                ConstructionMode.EXPLICIT: CompositionMode.EXPLICIT_JOINT,
+                ConstructionMode.DECLARED_PRODUCT: CompositionMode.DECLARED_PRODUCT,
+                ConstructionMode.CONDITIONAL_TREE: CompositionMode.CONDITIONAL_TREE,
+                ConstructionMode.ESTIMATED: CompositionMode.EXPLICIT_JOINT,
+            }[joint_model.construction_mode]
+            if joint_model is not None
+            else CompositionMode.NODE_ONLY
+        )
         self._system = SystemSpec(
             id=system_id,
             description=description,
@@ -516,19 +525,23 @@ class AnalyticAdapter:
                 for node in self.nodes.values()
             ],
             routing_semantics=routing_semantics,
-            composition_mode=(
-                CompositionMode.NODE_ONLY if joint_model is None else CompositionMode.EXPLICIT_JOINT
-            ),
+            composition_mode=composition_mode,
             capabilities=Capabilities(
-                analytic_jacobian=all(node.jacobian_function is not None for node in self.nodes.values()),
+                analytic_jacobian=all(
+                    node.jacobian_function is not None for node in self.nodes.values()
+                ),
                 joint_model=joint_model is not None,
-                likelihood_model=True,
+                likelihood_model=likelihood is not None,
                 action_distribution=routing_semantics is RoutingSemantics.SAMPLED_OUTCOME,
                 replayable=True,
             ),
             composition_assumptions=CompositionAssumptions(
+                conditional_independence=composition_mode is CompositionMode.DECLARED_PRODUCT,
                 shared_theta=True,
-                notes=["analytic families are deterministic functions of theta"],
+                notes=[
+                    "analytic families are deterministic functions of theta",
+                    *(joint_model.assumptions if joint_model is not None else []),
+                ],
             ),
         )
 
@@ -542,9 +555,7 @@ class AnalyticAdapter:
         node = self.nodes[node_id]
         return node.evaluate
 
-    def analytic_jacobian(
-        self, node_id: str, theta: Mapping[str, float]
-    ) -> FloatArray | None:
+    def analytic_jacobian(self, node_id: str, theta: Mapping[str, float]) -> FloatArray | None:
         node = self.nodes[node_id]
         return node.jacobian(theta)
 
@@ -625,7 +636,10 @@ def sample_case(case_id: str, state: object) -> CaseSpec:
     """Convenience constructor for analytic cases."""
     return CaseSpec(id=case_id, state=state)
 
-def single_node_joint_model(node: AnalyticNode, *, model_identity: str | None = None) -> AnalyticJointModel:
+
+def single_node_joint_model(
+    node: AnalyticNode, *, model_identity: str | None = None
+) -> AnalyticJointModel:
     """Treat one node family as a declared single-node joint model."""
 
     def probability_function(

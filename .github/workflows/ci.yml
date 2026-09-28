@@ -44,6 +44,7 @@ jobs:
           uv run python examples/analytic_geometry/run.py
           uv run python examples/system_information/run.py
           uv run python examples/jev_ticket_sensitivity/run.py
+          uv run python examples/three_agent_cleaning/run.py
       - name: Verify reports are self-contained
         run: |
           python - <<'PY'

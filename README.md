@@ -57,13 +57,15 @@ python -m pip install dist/jevometry-0.1.0-py3-none-any.whl
 
 ## Quickstart
 
-Run a complete offline example without credentials:
+Start with the offline
+[Three-Agent Data Cleaning Council](examples/three_agent_cleaning/README.md):
 
 ```bash
-uv run python examples/analytic_geometry/run.py
+uv run python examples/three_agent_cleaning/run.py
 ```
 
-Open the generated reports under `examples/analytic_geometry/output/`.
+Open `examples/three_agent_cleaning/output/report.html` to compare each
+agent's sensitivity with the declared joint and final cleaning decision.
 For a standalone Python experiment:
 
 ```python
@@ -104,13 +106,16 @@ See [docs/quickstart.md](docs/quickstart.md) for the full walkthrough and
 
 ## Examples
 
-Three complete, runnable examples live under `examples/`:
+Four complete, runnable examples live under `examples/`. Start with the
+[Three-Agent Data Cleaning Council](examples/three_agent_cleaning/README.md)
+for a compact multi-agent walkthrough:
 
 | Example | Command | Shows |
 |---------|---------|-------|
-| A. Analytic geometry laboratory | `uv run python examples/analytic_geometry/run.py` | Logistic and softmax Fisher information, rank deficiency, aggregation loss |
-| B. Multi-node information and inference | `uv run python examples/system_information/run.py` | Deterministic copies add no information, independent draws double it, conditional trees, MLE vs CRLB |
-| C. Ticket-system sensitivity | `uv run python examples/jev_ticket_sensitivity/run.py` | A synthetic ticket system with a deterministic policy, action flips and a declared surrogate; `--live` runs a minimal real grid |
+| Three-Agent Data Cleaning Council | `uv run python examples/three_agent_cleaning/run.py` | Three analytic agent distributions, a declared product joint, fixed action coordinator and information loss |
+| Analytic geometry laboratory | `uv run python examples/analytic_geometry/run.py` | Logistic and softmax Fisher information, rank deficiency, aggregation loss |
+| Multi-node information and inference | `uv run python examples/system_information/run.py` | Deterministic copies add no information, independent draws double it, conditional trees, MLE vs CRLB |
+| Ticket-system sensitivity | `uv run python examples/jev_ticket_sensitivity/run.py` | A synthetic ticket system with a deterministic policy, action flips and a declared surrogate; `--live` runs a minimal real grid |
 
 Each example writes a run directory and a self-contained interactive HTML
 report under `examples/*/output/`.
