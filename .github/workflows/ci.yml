@@ -28,7 +28,7 @@ jobs:
       - name: Ruff
         run: uv run --extra live ruff check src tests examples
       - name: mypy
-        run: uv run --extra live mypy
+        run: uv run --extra live mypy --python-version "$UV_PYTHON"
       - name: pytest
         run: uv run --extra live pytest --cov=jevometry --cov-branch --cov-report=term-missing
       - name: Build
