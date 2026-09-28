@@ -1,236 +1,143 @@
 # Jevometry
 
-**Measure the geometry, sensitivity, and information structure of Jev-powered
-decisions.**
+**See how an agent system's probability distributions change with its inputs.**
 
-Jevometry is an information-geometric analysis toolkit for Jev agent systems.
-It analyses output-distribution geometry, parameter sensitivity, Fisher
-information, system dependencies and information loss, and computes
-Cramér–Rao lower bounds and parameter inference under explicit statistical
-conditions.
+[![CI](https://github.com/Kunyanli230/Jevometry/actions/workflows/ci.yml/badge.svg)](https://github.com/Kunyanli230/Jevometry/actions/workflows/ci.yml)
 
-Version 0.1.0 (alpha). Python 3.11–3.13. MIT licensed. The offline analysis
-core requires no network access or API key. Jevometry is an independent
-project, not an official TypeSafe product.
+`v0.1.0 alpha` · Python 3.11–3.13 · MIT · offline core
 
-## What it does
+Jevometry captures explicit Jev decision probabilities and measures local
+sensitivity, Fisher information, and the information retained by a final
+decision. System results use a joint model you declare; statistical inference
+requires a separate observation model. The toolkit analyzes systems without
+orchestrating their agents or changing their decisions.
 
-* Validates Choice / Score / Noul probability vectors with strict support
-  alignment and traceable working-simplex derivation.
-* Computes entropy, KL, Jensen–Shannon, Hellinger and categorical
-  Fisher–Rao distances.
-* Computes node Fisher pullback metrics with finite-difference stability
-  diagnostics and an independent square-root cross-check.
-* Combines nodes only through declared joints, product models or conditional
-  trees, and checks the conditional information identity by exact enumeration.
-* Measures information loss under fixed aggregation mappings.
-* Computes CRLBs and synthetic MLE validation under an explicit sampling
-  contract.
-* Produces structured results with statuses, analysis objects, assumptions,
-  provenance and diagnostic reason codes. See the known limitations below
-  before interpreting live results.
+<p align="center">
+  <img src="./assets/readme/decision-flow.svg" width="100%" alt="Evidence and ambiguity feed three agent probability models; a declared product joint combines them, and a fixed mapping produces the final cleaning action and its information loss.">
+</p>
 
-## What it deliberately does not do
+The diagram shows the fully offline
+[Three-Agent Data Cleaning Council](examples/three_agent_cleaning/README.md).
+Its declared independence assumption is part of the model, not a property
+inferred from separate agent outputs.
 
-* It does not treat an API response as an independent categorical draw.
-* It does not sum correlated nodes' Fisher information as "system information".
-* It does not produce a CRLB without a complete sampling contract.
-* It does not use zero, epsilon smoothing, uniform fallbacks or synthetic data
-  in place of a result it cannot compute.
-* It does not modify an analysed system, call its tools, or run a service.
+## Run the example
 
-## Install
+The council examines one candidate repair: `monthly_income_usd` changes from
+`" 1,200 "` to `1200`. Start with [uv](https://docs.astral.sh/uv/) installed:
 
 ```bash
 git clone https://github.com/Kunyanli230/Jevometry.git
 cd Jevometry
-uv sync --locked                # offline core
-uv sync --locked --extra live   # adds the official TypeSafe SDK
-```
-
-Install [uv](https://docs.astral.sh/uv/) first. To build and install a wheel:
-
-```bash
-uv build
-python -m pip install dist/jevometry-0.1.0-py3-none-any.whl
-```
-
-## Quickstart
-
-Start with the offline
-[Three-Agent Data Cleaning Council](examples/three_agent_cleaning/README.md):
-
-```bash
+uv sync --locked
 uv run python examples/three_agent_cleaning/run.py
 ```
 
-Open `examples/three_agent_cleaning/output/report.html` to compare each
-agent's sensitivity with the declared joint and final cleaning decision.
-For a standalone Python experiment:
-
-```python
-from jevometry import Experiment, analyze, render_report
-from jevometry.adapters import AnalyticAdapter
-from jevometry.adapters.analytic import logistic_node
-from jevometry.schemas.experiment import CaseSpec, ExperimentSpec
-from jevometry.schemas.parameters import ParameterSet, ParameterSpec, StencilSpec
-
-node = logistic_node("risk", parameter="theta", coordinate="logit")
-adapter = AnalyticAdapter(system_id="logistic", nodes={"risk": node})
-spec = ExperimentSpec(
-    id="logistic",
-    parameter_set=ParameterSet(parameters=[ParameterSpec(
-        name="theta", role="task_relevant", unit="logit",
-        bounds=(-8.0, 8.0), step=0.01, center=0.0,
-    )]),
-    stencil=StencilSpec(),
-    cases=[CaseSpec(id="case", state="example")],
-    theta_points=[{"theta": 0.0}],
-)
-experiment = Experiment.from_spec(spec)
-captures = experiment.run(adapter)
-analysis = analyze(captures, adapter=adapter)
-render_report(analysis, output="runs/logistic/report.html")
-```
-
-```bash
-uv run jevometry init project/
-uv run jevometry validate project/experiment.yaml
-uv run jevometry run project/experiment.yaml --output runs/example
-uv run jevometry analyze runs/example
-uv run jevometry report runs/example --output runs/example/report.html
-```
-
-See [docs/quickstart.md](docs/quickstart.md) for the full walkthrough and
-[docs/adapters.md](docs/adapters.md) for connecting your own system.
-
-## Examples
-
-Four complete, runnable examples live under `examples/`. Start with the
-[Three-Agent Data Cleaning Council](examples/three_agent_cleaning/README.md)
-for a compact multi-agent walkthrough:
-
-| Example | Command | Shows |
-|---------|---------|-------|
-| Three-Agent Data Cleaning Council | `uv run python examples/three_agent_cleaning/run.py` | Three analytic agent distributions, a declared product joint, fixed action coordinator and information loss |
-| Analytic geometry laboratory | `uv run python examples/analytic_geometry/run.py` | Logistic and softmax Fisher information, rank deficiency, aggregation loss |
-| Multi-node information and inference | `uv run python examples/system_information/run.py` | Deterministic copies add no information, independent draws double it, conditional trees, MLE vs CRLB |
-| Ticket-system sensitivity | `uv run python examples/jev_ticket_sensitivity/run.py` | A synthetic ticket system with a deterministic policy, action flips and a declared surrogate; `--live` runs a minimal real grid |
-
-Each example writes a run directory and a self-contained interactive HTML
-report under `examples/*/output/`.
-
-## Capability and honesty
-
-For a categorical node, the Fisher pullback describes the local geometry of
-the probability family with respect to declared parameters:
+At `evidence=0.7` and `ambiguity=0.3`, the included analytic model yields:
 
 ```text
-I(θ) = Σ_y [∇θ p(y | θ) ∇θ p(y | θ)ᵀ] / p(y | θ)
+applicability_agent: Fisher trace 3.074, rank 1
+repair_agent:        Fisher trace 1.773, rank 2
+risk_agent:          Fisher trace 1.995, rank 2
+System Fisher trace: 6.842
+Information loss:    3.034
+Final action: auto_fix 0.236 · human_review 0.294 · reject 0.470
 ```
 
-This does not establish empirical calibration or an observation likelihood.
-Boundary probabilities, rank deficiency and unstable derivatives require
-separate diagnostics. Marginal probabilities alone cannot determine a joint
-system distribution, and deterministic routing is not categorical sampling.
+Open `examples/three_agent_cleaning/output/report.html` after running the
+command. The report and captures are generated locally; they are not tracked
+in Git. These figures describe the declared probability family at one point.
+They are not measured cleaning accuracy or empirical calibration.
 
-* Every metric is a structured result: `ok`, `conditional`, `unstable`,
-  `undefined`, `not_identifiable`, `insufficient_data`, `unsupported` or
-  `failed`, with a reason code and a remedy.
-* Missing structure produces a refusal, never a default number.
-* Synthetic simulation validates the declared model, not the real system.
-* Capture traces record the requested and resolved model. No model version is
-  presented as permanently current.
+## What Jevometry computes
 
-Read [docs/statistical_contracts.md](docs/statistical_contracts.md) and
-[docs/mathematics.md](docs/mathematics.md) before interpreting results.
+- **Compare distributions.** Entropy, KL, Jensen–Shannon, Hellinger and
+  Fisher–Rao measures require aligned probability supports.
+- **Find sensitive inputs.** Derivatives, node Fisher matrices, rank and
+  stability diagnostics require parameterized distributions and analytic
+  derivatives or finite-difference captures.
+- **Measure system information.** Joint Fisher information and loss under a
+  fixed final-action map require a declared joint, product model or
+  conditional tree.
+- **Assess inference.** A Cramér–Rao bound and optional synthetic MLE check
+  require a likelihood, estimand and complete sampling contract.
 
-## Live TypeSafe provider
+Jevometry records assumptions, provenance and status with each result. It
+refuses quantities that the available data and declarations cannot support;
+separate marginal distributions do not determine a system joint.
 
-The following Bash commands work in WSL. Live calls consume provider quota
-and may incur charges. `.env.example` is documentation only; environment
-files are not loaded automatically.
+Read the [statistical contracts](docs/statistical_contracts.md) and
+[mathematics](docs/mathematics.md) before interpreting Fisher information or
+CRLBs. A reported Jev probability is not an observed categorical draw.
+
+## Explore the repository
+
+- [Three-Agent Data Cleaning Council](examples/three_agent_cleaning/README.md) —
+  three agent distributions, a declared joint and a fixed coordinator.
+- [Analytic geometry laboratory](examples/analytic_geometry/run.py) — logistic
+  and softmax families, rank deficiency and aggregation loss.
+- [System information and inference](examples/system_information/run.py) —
+  independent draws, deterministic copies, conditional trees and synthetic MLE.
+- [Ticket-system sensitivity](examples/jev_ticket_sensitivity/run.py) — a
+  synthetic policy and an optional live TypeSafe capture.
+
+The [quickstart](docs/quickstart.md) covers the Python API and CLI. See
+[adapters](docs/adapters.md) to connect another system and
+[experiment design](docs/experiment_design.md) to choose parameters and
+finite-difference steps.
+
+## Capture live Jev decisions
+
+Live capture is optional. In Bash or WSL, install the TypeSafe SDK extra and
+supply a concrete model ID available to your account:
 
 ```bash
 uv sync --locked --extra live
 read -rsp 'TypeSafe API key: ' TYPESAFE_API_KEY
 echo
 export TYPESAFE_API_KEY
-uv run python examples/jev_ticket_sensitivity/run.py --live --model jev-1.13.0
+uv run --extra live python examples/jev_ticket_sensitivity/run.py --live --model jev-1.13.0
 unset TYPESAFE_API_KEY
 ```
 
-`jev-1.13.0` is the model used for the initial smoke test, not a claim about
-the latest model. Use a concrete model ID available to your account.
+`jev-1.13.0` was used for the initial smoke test; it is not a claim about the
+latest available model. This example makes 27 batch evaluations before
+retries and writes its report under
+`examples/jev_ticket_sensitivity/output/live/`. Provider calls may incur
+charges. Review captured inputs and outputs before sharing artifacts.
 
-The example evaluates one centre and eight perturbations, repeated three
-times: **27 batch evaluations and 81 node records**, before any retries.
-Output goes to `examples/jev_ticket_sensitivity/output/live/`; preserve the
-directory elsewhere before rerunning if you need the previous artifacts.
+The initial live capture returned 81 successful node records, but all three
+nodes failed the derivative step-stability check. It established that capture
+and reporting work; its Fisher estimates should not be used as reliable
+measurements. The example declares no joint observation model, so it produces
+neither system Fisher information nor a CRLB.
 
-* A concrete model id is required; `latest` is rejected.
-* Defaults: 45 s per request, 600 s per experiment, 200 attempts,
-  200 000 known input tokens, concurrency 2.
-* The SDK performs the only retry layer; auth and schema errors are not
-  retried.
-* Supply credentials through the environment and never commit them. Review
-  captured inputs and outputs for sensitive data before sharing artifacts.
+<details>
+<summary>Known v0.1 reporting and request-estimation issues</summary>
 
-Validated provider version: `typesafe-sdk 0.7.1`.  The exact SDK contract is
-re-verified by the transport-mock tests whenever the SDK is upgraded.
-
-## Known v0.1 limitations
-
-The initial live smoke test returned 81 successful node records. All three
-nodes failed the finite-difference step-stability check. This verified live
-capture and report generation, **not reliable live Fisher estimation**.
-The example declares neither a joint model nor an observation likelihood,
-so it does not produce system Fisher information or a CRLB.
-
-Three implementation issues remain unresolved:
-
-1. The request estimator reports 11 rather than 27 evaluations for the live
-   example because it undercounts repeated perturbations. Do not rely on
-   that estimate alone when planning provider spending.
-2. The capability summary can report `missing_stencil_captures` despite
-   complete captures when the actual problem is derivative instability.
-3. A node marked `unstable` can contain Fisher sub-results marked `ok`.
-   Treat their values as unvalidated whenever the parent geometry or
-   derivative diagnostics are unstable.
-
-A successful process exit does not imply valid statistical estimates.
-The API and artifact formats may evolve before 1.0. Read
+The live example's request estimator displays 11 evaluations although it
+makes 27 before retries. The capability summary may say
+`missing_stencil_captures` when captures exist but derivatives are unstable.
+A node marked `unstable` may also contain a Fisher sub-result marked `ok`;
+check the parent status before using its number. See
 [numerical limits](docs/numerical_limits.md) and
-[data handling](docs/data_handling.md) before running your own experiments.
+[data handling](docs/data_handling.md).
 
-## Development
+</details>
+
+## Develop
 
 ```bash
 uv sync --locked --extra live
-uv run ruff check src tests examples
-uv run mypy
-uv run pytest --cov=jevometry --cov-branch
+uv run --extra live ruff check src tests examples
+uv run --extra live mypy
+uv run --extra live pytest --cov=jevometry --cov-branch
 uv build
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and
-[docs/release.md](docs/release.md).
+The live adapter tests use mocked transport and need no API key. CI checks
+Python 3.11, 3.12 and 3.13. See [Contributing](CONTRIBUTING.md),
+[Security](SECURITY.md) and the [release process](docs/release.md).
 
-The live extra enables SDK contract tests using mocked transport; tests do
-not require an API key. CI is configured for Python 3.11, 3.12 and 3.13.
-Report bugs with versions, commands and relevant diagnostics, never API keys
-or private customer data. See [SECURITY.md](SECURITY.md) for security reporting.
-
-## Repository layout
-
-```text
-src/jevometry/   package: schemas, geometry, systems, inference, adapters,
-                 experiments, artifacts, reporting, CLI
-examples/        the three complete examples
-tests/           unit, property, integration, contract and fixtures
-docs/            mathematics, contracts, adapters, design, data, limits, release
-```
-
-## License
-
-Jevometry is distributed under the [MIT License](LICENSE).
+Jevometry is an independent project, not an official TypeSafe product.
+Licensed under [MIT](LICENSE).
