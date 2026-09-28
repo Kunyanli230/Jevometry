@@ -59,6 +59,16 @@ def test_matrix_diagnostics_reports_rank_and_nullspace() -> None:
     assert diagnostics.diagnostics == []
 
 
+def test_matrix_condition_number_uses_the_rank_threshold() -> None:
+    nearly_singular = matrix_diagnostics(np.diag([1.0, 1e-11]))
+    assert nearly_singular.rank == 1
+    assert nearly_singular.condition_number is None
+
+    full_rank = matrix_diagnostics(np.diag([1.0, 1e-5]))
+    assert full_rank.rank == 2
+    assert full_rank.condition_number == pytest.approx(1e5)
+
+
 def test_matrix_diagnostics_flags_negative_eigenvalues() -> None:
     matrix = np.asarray([[1.0, 0.0], [0.0, -1e-6]])
     diagnostics = matrix_diagnostics(matrix)

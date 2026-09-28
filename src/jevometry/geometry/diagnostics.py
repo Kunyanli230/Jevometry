@@ -58,7 +58,7 @@ def matrix_diagnostics(
         threshold = max(rtol * largest, atol)
         rank = int(np.sum(singular_values > threshold))
         smallest = float(singular_values[-1])
-        condition = None if smallest <= 0.0 else largest / smallest
+        condition = None if rank < array.shape[0] else largest / smallest
     _, _, right_vectors = np.linalg.svd(array)
     null_directions: list[FloatArray] = []
     if singular_values.size and singular_values.size == right_vectors.shape[0]:
