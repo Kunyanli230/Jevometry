@@ -100,6 +100,54 @@ def render_markdown(
         )
     )
     lines.append("")
+    lines.append("### Numerical geometry status")
+    lines.append("")
+    lines.append(
+        "Non-ok Fisher values are retained diagnostic values, not validated Fisher "
+        "geometry. Local metric unit balls are drawn only for ok matrices."
+    )
+    lines.append("")
+    lines.append(
+        _table(
+            ["Node", "Case", "Point", "Quantity", "Status", "Reason"],
+            [
+                [
+                    view["node_id"],
+                    view["case_id"],
+                    view["point_id"],
+                    quantity,
+                    result["status"],
+                    result["reason_code"],
+                ]
+                for view in model.node_views
+                for quantity in ("jacobian", "fisher")
+                if (result := view[quantity]) is not None
+            ],
+        )
+    )
+    lines.append("")
+    lines.append("### Node metrics")
+    lines.append("")
+    lines.append(
+        _table(
+            ["Node", "Case", "Point", "Metric", "Value", "Units", "Status", "Reason"],
+            [
+                [
+                    view["node_id"],
+                    view["case_id"],
+                    view["point_id"],
+                    metric["name"],
+                    metric["value"],
+                    metric["units"],
+                    metric["status"],
+                    metric["reason_code"],
+                ]
+                for view in model.node_views
+                for metric in view["metrics"]
+            ],
+        )
+    )
+    lines.append("")
     if model.distances:
         lines.append("## Distribution distances (consecutive theta points)")
         lines.append("")
@@ -142,7 +190,10 @@ def render_markdown(
             lines.append("")
             lines.append(
                 _table(
-                    ["Case", "Independent sum trace", "Joint trace", "Difference", "Status"],
+                    [
+                        "Case", "Independent sum trace", "Joint trace", "Difference", "Status",
+                        "Reason",
+                    ],
                     [
                         [
                             case["name"],
@@ -150,6 +201,7 @@ def render_markdown(
                             case["joint_trace"],
                             case["difference"],
                             case["status"],
+                            case["reason_code"],
                         ]
                         for case in model.system["redundancy"]
                     ],

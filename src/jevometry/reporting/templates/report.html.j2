@@ -96,6 +96,7 @@
 <div id="distributions-section"></div>
 
 <h2>5. Fisher information, spectrum and numerical stability</h2>
+<p class="note">Non-ok Fisher values are retained diagnostic values, not validated Fisher geometry. Local metric unit balls are drawn only for ok matrices.</p>
 <div id="fisher-section"></div>
 <div id="spectrum-section"></div>
 <div id="stability-section"></div>
@@ -120,11 +121,42 @@
   </tr>
   {% endfor %}
 </table>
+<h3>Numerical geometry status</h3>
+<table>
+  <tr><th>Node</th><th>Case</th><th>Point</th><th>Quantity</th><th>Status</th><th>Reason</th></tr>
+  {% for view in model.node_views %}
+  {% for quantity in ['jacobian', 'fisher'] %}
+  {% set result = view[quantity] %}
+  {% if result %}
+  <tr>
+    <td>{{ view.node_id }}</td><td>{{ view.case_id }}</td><td>{{ view.point_id }}</td>
+    <td>{{ quantity }}</td>
+    <td class="status-{{ 'ok' if result.status == 'ok' else ('conditional' if result.status == 'conditional' else 'bad') }}">{{ result.status }}</td>
+    <td><code>{{ result.reason_code or "" }}</code></td>
+  </tr>
+  {% endif %}
+  {% endfor %}
+  {% endfor %}
+</table>
+<h3>Node metrics</h3>
+<table>
+  <tr><th>Node</th><th>Case</th><th>Point</th><th>Metric</th><th>Value</th><th>Units</th><th>Status</th><th>Reason</th></tr>
+  {% for view in model.node_views %}
+  {% for metric in view.metrics %}
+  <tr>
+    <td>{{ view.node_id }}</td><td>{{ view.case_id }}</td><td>{{ view.point_id }}</td>
+    <td><code>{{ metric.name }}</code></td><td>{{ metric.value if metric.value is not none else "" }}</td><td>{{ metric.units or "" }}</td>
+    <td class="status-{{ 'ok' if metric.status == 'ok' else ('conditional' if metric.status == 'conditional' else 'bad') }}">{{ metric.status }}</td>
+    <td><code>{{ metric.reason_code or "" }}</code></td>
+  </tr>
+  {% endfor %}
+  {% endfor %}
+</table>
 <h3>Distances between consecutive theta points</h3>
 <table>
-  <tr><th>Metric</th><th>Value</th><th>Units</th><th>Status</th></tr>
+  <tr><th>Metric</th><th>Value</th><th>Units</th><th>Status</th><th>Reason</th></tr>
   {% for distance in model.distances %}
-  <tr><td><code>{{ distance.name }}</code></td><td>{{ distance.value }}</td><td>{{ distance.units }}</td><td>{{ distance.status }}</td></tr>
+  <tr><td><code>{{ distance.name }}</code></td><td>{{ distance.value }}</td><td>{{ distance.units }}</td><td>{{ distance.status }}</td><td><code>{{ distance.reason_code or "" }}</code></td></tr>
   {% endfor %}
 </table>
 
@@ -158,7 +190,7 @@
 {% if model.system.redundancy %}
 <h3>Redundancy: independent sum versus declared joint</h3>
 <table>
-  <tr><th>Case</th><th>Independent sum trace</th><th>Joint trace</th><th>Difference</th><th>Status</th></tr>
+  <tr><th>Case</th><th>Independent sum trace</th><th>Joint trace</th><th>Difference</th><th>Status</th><th>Reason</th></tr>
   {% for case in model.system.redundancy %}
   <tr>
     <td>{{ case.name }}</td>
@@ -166,6 +198,7 @@
     <td>{{ case.joint_trace }}</td>
     <td>{{ case.difference }}</td>
     <td>{{ case.status }}</td>
+    <td><code>{{ case.reason_code or "" }}</code></td>
   </tr>
   {% endfor %}
 </table>
@@ -190,7 +223,7 @@
 <script>
 const CHARTS = [
 {% for chart in charts %}
-  {group: {{ chart.group | tojson }}, id: {{ chart.id | tojson }}, title: {{ chart.title | tojson }}, figure: JSON.parse({{ chart.json | tojson }})},
+  {group: {{ chart.group | tojson }}, id: {{ chart.id | tojson }}, title: {{ chart.title | tojson }}, note: {{ chart.get('note', '') | tojson }}, figure: JSON.parse({{ chart.json | tojson }})},
 {% endfor %}
 ];
 
@@ -210,10 +243,15 @@ function renderGroup(group, containerId) {
   const holder = document.createElement("div");
   holder.className = "chart";
   holder.id = containerId + "-holder";
+  const note = document.createElement("p");
+  note.className = "note";
   container.appendChild(select);
+  container.appendChild(note);
   container.appendChild(holder);
   function draw(index) {
     const item = items[index];
+    note.textContent = item.note;
+    note.hidden = !item.note;
     Plotly.newPlot(holder, item.figure.data, item.figure.layout, {responsive: true});
   }
   select.addEventListener("change", () => draw(Number(select.value)));

@@ -16,7 +16,7 @@ from typing import Any
 
 import numpy as np
 
-from jevometry.artifacts.integrity import hash_object, write_checksums
+from jevometry.artifacts.integrity import hash_object, run_artifact_paths, write_checksums
 from jevometry.schemas.experiment import ExperimentSpec
 from jevometry.schemas.results import AnalysisDocument, RunManifest
 from jevometry.schemas.trace import EvaluationTrace
@@ -24,12 +24,15 @@ from jevometry.schemas.trace import EvaluationTrace
 RUN_FILES = (
     "manifest.json",
     "experiment.resolved.yaml",
+    "config.resolved.yaml",
     "system.json",
+    "questions.json",
     "parameters.json",
     "traces.jsonl",
     "derivatives.npz",
     "metrics.json",
     "diagnostics.json",
+    "inference.json",
     "report.html",
     "report.md",
     "checksums.json",
@@ -227,11 +230,7 @@ class RunStore:
 
     def finalize_checksums(self) -> dict[str, str]:
         self.write_manifest()
-        candidates: dict[str, str] = {}
-        for name in RUN_FILES:
-            candidate = self.root / name
-            if candidate.exists() and name != "checksums.json":
-                candidates[name] = name
+        candidates = {name: name for name in run_artifact_paths(self.root)}
         return write_checksums(self.root, candidates)
 
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,7 @@ import yaml
 
 from jevometry import __version__
 from jevometry.analysis import analyze as analyze_captures
+from jevometry.artifacts.integrity import verify_run
 from jevometry.artifacts.store import RunStore
 from jevometry.compare import compare_runs, write_comparison
 from jevometry.config import ExperimentConfig, build_adapter, load_config
@@ -334,17 +336,39 @@ def report(
     inference_path = Path(run_dir) / "inference.json"
     if inference_path.exists():
         inference_payload = json.loads(inference_path.read_text(encoding="utf-8"))
-    html_path, markdown_path = render_report(
-        analysis,
-        output=output,
-        markdown_output=Path(output).with_suffix(".md"),
-        run_directory=run_dir,
-        inference=inference_payload,
-    )
+    try:
+        html_path, markdown_path = render_report(
+            analysis,
+            output=output,
+            markdown_output=Path(output).with_suffix(".md"),
+            run_directory=run_dir,
+            inference=inference_payload,
+        )
+    except (OSError, ValueError, RuntimeError) as error:
+        _fail(f"cannot write report: {error}", 2)
+        return
     typer.echo(str(html_path))
     typer.echo(str(markdown_path))
     if inference_payload is not None:
         typer.echo("inference.json included in the report")
+
+
+@app.command()
+def verify(
+    run_dir: Path = typer.Argument(..., exists=True, file_okay=False, readable=True),
+    json_output: bool = typer.Option(False, "--json", help="Emit a machine-readable audit"),
+) -> None:
+    """Verify run checksums and analysis revision coverage without changing files."""
+    result = verify_run(run_dir)
+    if json_output:
+        typer.echo(json.dumps(asdict(result), indent=2))
+    else:
+        typer.echo(f"integrity: {'ok' if result.valid else 'failed'}")
+        typer.echo(f"checked files: {result.checked_files}")
+        for issue in result.issues:
+            typer.echo(f"issue: {issue}")
+    if not result.valid:
+        raise typer.Exit(code=2)
 
 
 @app.command()

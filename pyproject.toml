@@ -1,6 +1,6 @@
 [project]
 name = "jevometry"
-version = "0.1.0"
+version = "0.2.0"
 description = "Information-geometric analysis of Jev agent systems"
 authors = [{ name = "Jevometry maintainers" }]
 classifiers = [

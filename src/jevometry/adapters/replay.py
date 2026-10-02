@@ -101,16 +101,22 @@ class ReplayAdapter:
         self.adapter_version = adapter_version
         self.question_hashes = dict(question_hashes or {})
         self.index = ReplayIndex.load(self.run_directory)
+        self._declared_provider = provider
         self.provider = provider or self._infer_provider()
         self._node_ids = node_ids or self.index.node_ids()
 
     def _infer_provider(self) -> str:
         """Infer the source provider from the recorded trace provenance."""
         for trace in self.index.traces:
-            provider = trace.provenance.get("provider")
+            provider = self._source_provider(trace)
             if isinstance(provider, str) and provider:
                 return provider
         return "typesafe"
+
+    @staticmethod
+    def _source_provider(trace: EvaluationTrace) -> str | None:
+        value = trace.provenance.get("source_provider", trace.provenance.get("provider"))
+        return value if isinstance(value, str) and value else None
 
     def describe_node_ids(self) -> list[str]:
         return list(self._node_ids)
@@ -152,39 +158,90 @@ class ReplayAdapter:
                         "never falls back to a live provider"
                     ),
                 )
-            template = sorted(candidates, key=lambda item: item.repeat)[0]
-            expected = request_fingerprint(
-                provider=self.provider,
-                model=self.model,
-                adapter_version=self.adapter_version,
-                node_id=node_id,
-                question_hash=self.question_hashes.get(node_id, template.question_id),
-                rendered_fingerprint=template.rendered_fingerprint,
-                theta=point.theta,
-                history=point.history,
-                stencil_role=point.stencil_role,
-            )
-            if self.question_hashes and all(
-                trace.request_fingerprint != expected for trace in candidates
-            ):
-                raise ReplayError(
-                    "fingerprint_mismatch",
-                    (
-                        f"recorded fingerprints for node {node_id!r} do not match the "
-                        "current questions, model or adapter version; refusing to mix versions"
-                    ),
-                )
             match = next(
                 (trace for trace in candidates if trace.repeat == point.repeat), None
             )
             if match is None:
-                match = template
-            results.append(
-                match.model_copy(
-                    update={"provenance": {**match.provenance, "provider": "replay"}}
+                raise ReplayError(
+                    "missing_capture",
+                    (
+                        f"no capture for node {node_id!r} case {point.case.id!r} "
+                        f"point {point.point_id!r} role {point.stencil_role!r} "
+                        f"repeat {point.repeat}; replay never reuses another repeat"
+                    ),
                 )
+            self._validate_capture(match, point)
+            provenance = {**match.provenance, "provider": "replay"}
+            source_provider = self._source_provider(match)
+            if source_provider is not None:
+                provenance["source_provider"] = source_provider
+            results.append(
+                match.model_copy(update={"provenance": provenance})
             )
         return results
+
+    def _validate_capture(self, trace: EvaluationTrace, point: ExperimentPoint) -> None:
+        """Validate declarations and the fingerprint of the selected repeat.
+
+        Older captures may omit source metadata.  Unspecified declarations do
+        not invent that metadata; explicit declarations must be verifiable.
+        """
+        provider = self._source_provider(trace)
+        adapter = trace.provenance.get("adapter_version")
+        adapter_version = adapter if isinstance(adapter, str) else None
+        question_hash = (
+            trace.distribution.semantic_hash if trace.distribution is not None else None
+        )
+        declared_question = self.question_hashes.get(trace.node_id)
+        declarations = (
+            (self._declared_provider, provider),
+            (self.model, trace.status.model_requested),
+            (self.adapter_version, adapter_version),
+            (declared_question, question_hash),
+        )
+        mismatch = trace.history != dict(point.history) or any(
+            declared is not None and recorded is not None and declared != recorded
+            for declared, recorded in declarations
+        )
+        if self.model is not None and self.model != trace.status.model_requested:
+            mismatch = True
+        expected_provider = self._declared_provider or provider
+        expected_adapter = self.adapter_version or adapter_version
+        expected_question = declared_question or question_hash
+        can_verify_fingerprint = (
+            expected_provider is not None
+            and expected_adapter is not None
+            and expected_question is not None
+        )
+        if can_verify_fingerprint:
+            assert expected_provider is not None
+            assert expected_question is not None
+            expected = request_fingerprint(
+                provider=expected_provider,
+                model=self.model if self.model is not None else trace.status.model_requested,
+                adapter_version=expected_adapter,
+                node_id=trace.node_id,
+                question_hash=expected_question,
+                rendered_fingerprint=trace.rendered_fingerprint,
+                theta=point.theta,
+                history=point.history,
+                stencil_role=point.stencil_role,
+            )
+            mismatch = mismatch or trace.request_fingerprint != expected
+        elif any(
+            declared is not None and recorded is None
+            for declared, recorded in declarations
+        ):
+            mismatch = True
+        if mismatch:
+            raise ReplayError(
+                "fingerprint_mismatch",
+                (
+                    f"capture for node {trace.node_id!r} repeat {point.repeat} does not "
+                    "match the current provider, model, adapter, question or history; "
+                    "refusing to mix requests"
+                ),
+            )
 
     def describe_status(self) -> ProviderStatus:
         return ProviderStatus(

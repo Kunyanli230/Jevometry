@@ -23,6 +23,7 @@ from jevometry.geometry.derivatives import (
     JacobianComputation,
     NodeEvaluation,
     compute_jacobian,
+    stencil_points,
 )
 from jevometry.geometry.distances import (
     entropy,
@@ -168,11 +169,15 @@ def _node_metric(
     *,
     analysis_object: AnalysisObject,
     units: str = "nats",
+    status: MetricStatus = MetricStatus.OK,
+    reason_code: str | None = None,
     **kwargs: Any,
 ) -> MetricResult:
-    return MetricResult.ok(
-        name,
-        float(value),
+    return MetricResult(
+        name=name,
+        value=float(value),
+        status=status,
+        reason_code=reason_code,
         analysis_object=analysis_object,
         value_kind=ValueKind.SCALAR,
         units=units,
@@ -224,26 +229,6 @@ def analyze(
             remedy=None
             if has_distributions
             else "run the experiment and capture at least one reported distribution",
-        )
-    )
-
-    stencil_available = any(trace.stencil_role != "center" for trace in captures.traces)
-    geometry_possible = bool(parameters) and stencil_available and has_distributions
-    capability.add(
-        CapabilityEntry(
-            capability="node_geometry",
-            status=MetricStatus.OK if geometry_possible else MetricStatus.INSUFFICIENT_DATA,
-            analysis_object=AnalysisObject.REPORTED_DISTRIBUTION,
-            reason_code=None
-            if geometry_possible
-            else (
-                "no_parameters"
-                if not parameters
-                else ("missing_stencil_captures" if not stencil_available else "no_distributions")
-            ),
-            remedy=None
-            if geometry_possible
-            else "capture the finite-difference stencil points for each parameter",
         )
     )
 
@@ -344,6 +329,8 @@ def analyze(
             )
         )
 
+    capability.entries.insert(1, _node_geometry_capability(captures, node_analyses))
+
     distances = _distribution_distances(captures)
     top_metrics.extend(distances)
 
@@ -356,6 +343,7 @@ def analyze(
         arrays=arrays,
         diagnostics=diagnostics,
         composition_mode=composition_mode,
+        node_analyses=node_analyses,
     )
     if resolved_joint is None and composition_mode is CompositionMode.DECLARED_PRODUCT:
         _add_declared_product_system(
@@ -365,6 +353,13 @@ def analyze(
             node_ids=node_ids,
             arrays=arrays,
         )
+
+    for entry in capability.entries:
+        if entry.capability == "system_information":
+            entry.status = system_document.status
+            entry.reason_code = system_document.reason_code
+            if entry.status is not MetricStatus.OK and entry.remedy is None:
+                entry.remedy = "inspect the declared system model and its numerical diagnostics"
 
     if captures.incomplete:
         diagnostics.append(
@@ -400,13 +395,14 @@ def analyze(
         },
         warnings=list(captures.notes),
     )
+    analyzed_joint = None
+    if resolved_joint is not None and system_document.reason_code != "joint_evaluation_failed":
+        analyzed_joint = resolved_joint.probabilities(experiment.center())
     return Analysis(
         document=document,
         captures=captures,
         arrays=arrays,
-        joint=resolved_joint.probabilities(experiment.center())
-        if resolved_joint is not None
-        else None,
+        joint=analyzed_joint,
         adapter=adapter,
         contract=resolved_contract,
         likelihood=likelihood,
@@ -418,6 +414,48 @@ def _node_ids(captures: Captures, adapter: SystemAdapter | None) -> list[str]:
     if adapter is not None:
         return adapter.describe().node_ids()
     return captures.node_ids()
+
+
+def _node_geometry_capability(
+    captures: Captures, nodes: Sequence[NodeAnalysis]
+) -> CapabilityEntry:
+    """Summarize actual results, rather than the presence of any stencil trace."""
+    reason: str | None
+    if not captures.experiment.parameters():
+        status, reason = MetricStatus.INSUFFICIENT_DATA, "no_parameters"
+    elif not any(node.distribution is not None for node in nodes):
+        status, reason = MetricStatus.INSUFFICIENT_DATA, "no_distributions"
+    else:
+        status, reason = _geometry_status_summary(
+            [(node.status, node.reason_code) for node in nodes]
+        )
+    remedies = {
+        "missing_stencil_captures": "capture the full stencil for each node, case and point",
+        "step_stability_exceeded": "reduce parameter steps and capture a new stability stencil",
+        "resolution_limited": "use a renderer that preserves the requested parameter changes",
+        "no_distributions": "capture at least one validated center distribution",
+        "mixed_node_geometry": "inspect each node, case and point for its geometry status and reason",
+    }
+    return CapabilityEntry(
+        capability="node_geometry",
+        status=status,
+        analysis_object=AnalysisObject.REPORTED_DISTRIBUTION,
+        reason_code=reason,
+        remedy=None
+        if status is MetricStatus.OK
+        else remedies.get(reason or "", "inspect the per-node numerical diagnostics"),
+    )
+
+
+def _geometry_status_summary(
+    states: Sequence[tuple[MetricStatus, str | None]],
+) -> tuple[MetricStatus, str | None]:
+    if not states:
+        return MetricStatus.INSUFFICIENT_DATA, "missing_node_geometry"
+    distinct = set(states)
+    if len(distinct) == 1:
+        return states[0]
+    return MetricStatus.CONDITIONAL, "mixed_node_geometry"
 
 
 def _analyze_node(
@@ -481,15 +519,43 @@ def _analyze_node(
             evaluator = TraceEvaluator(
                 captures.traces, node_id=node_id, case_id=case.id, point_id=pid, repeat=repeat
             )
-            computation = compute_jacobian(
-                evaluator,
-                node_id=node_id,
-                case_id=case.id,
-                point_id=pid,
-                theta=theta,
-                parameters=list(parameters),
-                stencil=experiment.stencil,
-            )
+            missing_points = [
+                point.role
+                for point in stencil_points(theta, parameters, experiment.stencil)
+                if _theta_key(point.theta) not in evaluator.index
+            ]
+            if record is not None and missing_points:
+                computation = JacobianComputation(
+                    node_id=node_id,
+                    case_id=case.id,
+                    point_id=pid,
+                    parameter_names=parameter_names,
+                    support=tuple(record.support),
+                    values=None,
+                    method="finite_difference",
+                    stencil_kind=experiment.stencil.kind,
+                    status=MetricStatus.INSUFFICIENT_DATA,
+                    reason_code="missing_stencil_captures",
+                    diagnostics=[
+                        Diagnostic(
+                            code="missing_stencil_captures",
+                            message=f"node {node_id}: required stencil captures are absent",
+                            severity="warning",
+                            details={"case_id": case.id, "point_id": pid, "roles": missing_points},
+                        )
+                    ],
+                    theta=dict(theta),
+                )
+            else:
+                computation = compute_jacobian(
+                    evaluator,
+                    node_id=node_id,
+                    case_id=case.id,
+                    point_id=pid,
+                    theta=theta,
+                    parameters=list(parameters),
+                    stencil=experiment.stencil,
+                )
             if computation.values is not None and record is not None:
                 geometry = _geometry_from_computation(
                     computation,
@@ -508,6 +574,7 @@ def _analyze_node(
             else:
                 status = computation.status
                 reason_code = computation.reason_code
+                diagnostics.extend(computation.diagnostics)
                 metrics.append(
                     MetricResult.refusal(
                         f"fisher:{node_id}:{case.id}:{pid}",
@@ -606,6 +673,13 @@ def _geometry_from_computation(
             reason_code=fisher.reason_code,
         )
     assert fisher.matrix is not None
+    fisher_status = fisher.status if fisher.status is not MetricStatus.OK else computation.status
+    fisher_reason = fisher.reason_code or computation.reason_code
+    source_diagnostics = {
+        "jacobian_status": computation.status.value,
+        "jacobian_reason_code": computation.reason_code,
+        "diagnostic_only": fisher_status is not MetricStatus.OK,
+    }
     standardized = transform.fisher(fisher.values)
     key = f"fisher__{node_id}__{record.case_id}__{record.point_id}"
     arrays[key] = fisher.values
@@ -629,25 +703,28 @@ def _geometry_from_computation(
         null_directions=[
             [float(value) for value in direction] for direction in fisher.matrix.null_directions
         ],
-        status=fisher.status,
-        reason_code=fisher.reason_code,
+        status=fisher_status,
+        reason_code=fisher_reason,
         assumptions=fisher.assumptions,
         tolerances={
             "rank_rtol": fisher.matrix.rank_rtol,
             "rank_atol": fisher.matrix.rank_atol,
         },
-        diagnostics=fisher.diagnostics,
+        diagnostics=[*computation.diagnostics, *fisher.diagnostics],
     )
     metrics.append(
         _node_metric(
             f"fisher_trace:{node_id}:{record.case_id}:{record.point_id}",
             float(np.trace(fisher.values)),
             analysis_object=analysis_object,
+            status=fisher_status,
+            reason_code=fisher_reason,
             units="nats",
             coordinates=parameter_names,
             tolerances={"rank_rtol": fisher.matrix.rank_rtol},
             numerical_method=computation.method,
             diagnostics={
+                **source_diagnostics,
                 "rank": fisher.matrix.rank,
                 "condition_number": fisher.matrix.condition_number,
                 "stability_relative": computation.stability_relative,
@@ -659,8 +736,11 @@ def _geometry_from_computation(
             f"fisher_trace_standardized:{node_id}:{record.case_id}:{record.point_id}",
             float(np.trace(standardized)),
             analysis_object=analysis_object,
+            status=fisher_status,
+            reason_code=fisher_reason,
             units="nats",
             coordinates=[f"{name}/scale" for name in parameter_names],
+            diagnostics=source_diagnostics,
         )
     )
     for index, name in enumerate(parameter_names):
@@ -669,23 +749,34 @@ def _geometry_from_computation(
                 f"fisher_diagonal:{node_id}:{record.case_id}:{record.point_id}:{name}",
                 float(fisher.values[index, index]),
                 analysis_object=analysis_object,
+                status=fisher_status,
+                reason_code=fisher_reason,
                 units="nats",
                 coordinates=[name],
+                diagnostics=source_diagnostics,
             )
         )
     if fisher.matrix.rank < len(parameter_names):
         metrics.append(
             MetricResult.refusal(
                 f"fisher_identifiability:{node_id}:{record.case_id}:{record.point_id}",
-                status=MetricStatus.NOT_IDENTIFIABLE,
+                status=MetricStatus.NOT_IDENTIFIABLE
+                if fisher_status is MetricStatus.OK
+                else fisher_status,
                 analysis_object=analysis_object,
-                reason_code="rank_deficient",
+                reason_code="rank_deficient"
+                if fisher_status is MetricStatus.OK
+                else (fisher_reason or "unreliable_jacobian"),
                 remedy=(
                     f"rank {fisher.matrix.rank} of {len(parameter_names)}: some parameter "
                     "directions are not identifiable at this point"
+                    if fisher_status is MetricStatus.OK
+                    else "resolve the Jacobian diagnostics before assessing identifiability"
                 ),
                 value_kind=ValueKind.NULL,
                 diagnostics={
+                    **source_diagnostics,
+                    "rank": fisher.matrix.rank,
                     "null_directions": [
                         [float(value) for value in direction]
                         for direction in fisher.matrix.null_directions
@@ -698,9 +789,6 @@ def _geometry_from_computation(
     )
     if cross_check is not None:
         metrics.append(cross_check)
-    geometry_status = computation.status
-    if fisher.status is not MetricStatus.OK:
-        geometry_status = fisher.status
     return GeometryResult(
         node_id=node_id,
         case_id=record.case_id,
@@ -710,8 +798,8 @@ def _geometry_from_computation(
         jacobian=jacobian_result,
         fisher=fisher_geometry,
         metrics=metrics,
-        status=geometry_status,
-        reason_code=fisher.reason_code or computation.reason_code,
+        status=fisher_status,
+        reason_code=fisher_reason,
     )
 
 
@@ -748,7 +836,15 @@ def _analytic_cross_check(
         units="relative",
         numerical_method="max-abs finite-difference vs analytic",
         tolerances={"relative": 1e-5},
-        diagnostics={"max_absolute_difference": difference},
+        assumptions=[
+            "this comparison residual does not override the finite-difference geometry status"
+        ],
+        diagnostics={
+            "max_absolute_difference": difference,
+            "jacobian_status": computation.status.value,
+            "jacobian_reason_code": computation.reason_code,
+            "within_tolerance": relative <= 1e-5,
+        },
     )
 
 
@@ -851,9 +947,11 @@ def _analyze_system(
     arrays: dict[str, FloatArray],
     diagnostics: list[Diagnostic],
     composition_mode: CompositionMode,
+    node_analyses: Sequence[NodeAnalysis],
 ) -> SystemAnalysisDocument:
     experiment = captures.experiment
     system_spec = adapter.describe() if adapter is not None else None
+    reason: str | None
     if joint_model is None:
         reason = (
             "declared_product_pending"
@@ -904,7 +1002,8 @@ def _analyze_system(
         node_order=joint.node_order,
         parameter_names=parameter_names,
     )
-    arrays["joint__fisher"] = fisher.values if fisher.values is not None else np.zeros((0, 0))
+    if fisher.values is not None:
+        arrays["joint__fisher"] = fisher.values
     arrays["joint__probabilities"] = np.asarray(joint.probabilities, dtype=np.float64)
     if fisher.values is not None:
         metrics.append(
@@ -912,6 +1011,8 @@ def _analyze_system(
                 "system_fisher_trace",
                 float(np.trace(fisher.values)),
                 analysis_object=AnalysisObject.DECLARED_SYSTEM_MODEL,
+                status=fisher.status,
+                reason_code=fisher.reason_code,
                 coordinates=parameter_names,
                 assumptions=list(joint.assumptions),
             )
@@ -970,6 +1071,8 @@ def _analyze_system(
                     float(np.trace(loss.difference)),
                     analysis_object=AnalysisObject.DECLARED_SYSTEM_MODEL,
                     assumptions=loss.assumptions,
+                    status=loss.status,
+                    reason_code=loss.reason_code,
                     diagnostics={"psd": loss.psd, "min_eigenvalue": loss.min_eigenvalue},
                 )
             )
@@ -984,30 +1087,60 @@ def _analyze_system(
                 )
             )
     redundancy: list[RedundancyCase] = []
-    node_fisher = _node_fisher_by_name(captures, arrays)
-    if fisher.values is not None and node_fisher:
-        comparison = compare_independent_sum(
-            name="independent_sum_vs_joint",
-            description=(
-                "sum of node Fisher traces (assumed-independent baseline) versus the "
-                "declared joint Fisher trace"
-            ),
-            node_fisher=node_fisher,
-            joint_probabilities=np.asarray(joint.probabilities, dtype=np.float64),
-            joint_jacobian=jacobian,
+    node_fisher = _node_fisher_by_name(captures, arrays, node_analyses)
+    if fisher.values is not None:
+        baseline_names = node_ids
+        invalid_nodes = _unreliable_node_fisher(captures, node_analyses, node_fisher, node_ids)
+        description = (
+            "sum of node Fisher traces (assumed-independent baseline) versus the "
+            "declared joint Fisher trace"
         )
-        redundancy.append(
-            RedundancyCase(
-                name=comparison.name,
-                description=comparison.description,
-                independent_sum_trace=comparison.independent_sum_trace,
-                joint_trace=comparison.joint_trace,
-                difference=comparison.difference,
-                status=comparison.status,
-                reason_code=comparison.reason_code,
-                assumptions=comparison.assumptions,
+        if invalid_nodes or len(node_fisher) != len(baseline_names):
+            status, reason = _geometry_status_summary(
+                [(status, reason) for _, status, reason in invalid_nodes]
             )
-        )
+            redundancy.append(
+                RedundancyCase(
+                    name="independent_sum_vs_joint",
+                    description=description,
+                    joint_trace=float(np.trace(fisher.values)),
+                    status=status,
+                    reason_code=reason,
+                    diagnostics=[
+                        Diagnostic(
+                            code="unreliable_node_fisher",
+                            message="the independent-sum baseline requires reliable Fisher for every node",
+                            severity="warning",
+                            details={
+                                "nodes": [
+                                    {"node_id": node, "status": status.value, "reason_code": reason}
+                                    for node, status, reason in invalid_nodes
+                                ]
+                            },
+                        )
+                    ],
+                )
+            )
+        else:
+            comparison = compare_independent_sum(
+                name="independent_sum_vs_joint",
+                description=description,
+                node_fisher=node_fisher,
+                joint_probabilities=np.asarray(joint.probabilities, dtype=np.float64),
+                joint_jacobian=jacobian,
+            )
+            redundancy.append(
+                RedundancyCase(
+                    name=comparison.name,
+                    description=comparison.description,
+                    independent_sum_trace=comparison.independent_sum_trace,
+                    joint_trace=comparison.joint_trace,
+                    difference=comparison.difference,
+                    status=comparison.status,
+                    reason_code=comparison.reason_code,
+                    assumptions=comparison.assumptions,
+                )
+            )
     return SystemAnalysisDocument(
         mode=composition_mode.value,
         node_order=list(joint.node_order),
@@ -1047,20 +1180,25 @@ def _add_declared_product_system(
                 for item in captures.center_traces()
                 if item.node_id == node_id
                 and item.case_id == experiment.cases[0].id
+                and item.point_id == _point_id(theta)
                 and item.distribution is not None
             ),
             None,
         )
         if trace is None or trace.distribution is None:
+            system_document.status = MetricStatus.INSUFFICIENT_DATA
+            system_document.reason_code = "missing_node_distribution"
             return
         record = trace.distribution
         outcome_sets[node_id] = record.support
         distributions[node_id] = np.asarray(record.probabilities(), dtype=np.float64)
         analytic = getattr(adapter, "analytic_jacobian", None)
         if not callable(analytic):
+            system_document.reason_code = "missing_analytic_node_jacobian"
             return
         matrix = analytic(node_id, theta)
         if matrix is None:
+            system_document.reason_code = "missing_analytic_node_jacobian"
             return
         jacobians[node_id] = np.asarray(matrix, dtype=np.float64)
     parameter_names = experiment.parameter_names()
@@ -1075,7 +1213,16 @@ def _add_declared_product_system(
         jacobian = product_joint_jacobian(
             node_ids, outcome_sets, distributions, jacobians, parameter_names
         )
-    except ValueError:
+    except ValueError as error:
+        system_document.status = MetricStatus.FAILED
+        system_document.reason_code = "declared_product_evaluation_failed"
+        system_document.diagnostics.append(
+            Diagnostic(
+                code="declared_product_evaluation_failed",
+                message=str(error),
+                severity="error",
+            )
+        )
         return
     fisher = joint_fisher(
         np.asarray(joint.probabilities, dtype=np.float64),
@@ -1084,6 +1231,16 @@ def _add_declared_product_system(
         parameter_names=parameter_names,
     )
     if fisher.values is None:
+        system_document.status = fisher.status
+        system_document.reason_code = fisher.reason_code
+        system_document.metrics.append(
+            MetricResult.refusal(
+                "declared_product_fisher_trace",
+                status=fisher.status,
+                analysis_object=AnalysisObject.DECLARED_SYSTEM_MODEL,
+                reason_code=fisher.reason_code or "system_fisher_undefined",
+            )
+        )
         return
     arrays["declared_product__fisher"] = fisher.values
     system_document.metrics.append(
@@ -1091,6 +1248,8 @@ def _add_declared_product_system(
             "declared_product_fisher_trace",
             float(np.trace(fisher.values)),
             analysis_object=AnalysisObject.DECLARED_SYSTEM_MODEL,
+            status=MetricStatus.CONDITIONAL,
+            reason_code="assumption_based",
             coordinates=parameter_names,
             assumptions=["declared conditional independence and shared theta"],
         )
@@ -1104,16 +1263,46 @@ def _add_declared_product_system(
 
 
 def _node_fisher_by_name(
-    captures: Captures, arrays: Mapping[str, FloatArray]
+    captures: Captures,
+    arrays: Mapping[str, FloatArray],
+    node_analyses: Sequence[NodeAnalysis],
 ) -> dict[str, FloatArray]:
     result: dict[str, FloatArray] = {}
     center = captures.experiment.center()
     pid = _point_id(center)
     case_id = captures.experiment.cases[0].id
-    for node_id in captures.node_ids():
-        key = f"fisher__{node_id}__{case_id}__{pid}"
-        if key in arrays:
-            result[node_id] = arrays[key]
+    for node in node_analyses:
+        if node.case_id != case_id or node.point_id != pid:
+            continue
+        fisher = node.geometry.fisher if node.geometry is not None else None
+        key = f"fisher__{node.node_id}__{case_id}__{pid}"
+        if fisher is not None and fisher.status is MetricStatus.OK and key in arrays:
+            result[node.node_id] = arrays[key]
+    return result
+
+
+def _unreliable_node_fisher(
+    captures: Captures,
+    node_analyses: Sequence[NodeAnalysis],
+    node_fisher: Mapping[str, FloatArray],
+    node_ids: Sequence[str],
+) -> list[tuple[str, MetricStatus, str | None]]:
+    pid = _point_id(captures.experiment.center())
+    case_id = captures.experiment.cases[0].id
+    nodes = {
+        node.node_id: node
+        for node in node_analyses
+        if node.case_id == case_id and node.point_id == pid
+    }
+    result: list[tuple[str, MetricStatus, str | None]] = []
+    for node_id in node_ids:
+        if node_id in node_fisher:
+            continue
+        node = nodes.get(node_id)
+        if node is None or node.status is MetricStatus.OK:
+            result.append((node_id, MetricStatus.INSUFFICIENT_DATA, "missing_node_geometry"))
+        else:
+            result.append((node_id, node.status, node.reason_code))
     return result
 
 

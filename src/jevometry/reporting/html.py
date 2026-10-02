@@ -54,6 +54,16 @@ def _model_payload(model: ReportModel) -> dict[str, Any]:
         "identity": model.identity,
         "capability": model.capability,
         "completeness": model.completeness,
+        "nodes": [
+            {
+                key: view[key]
+                for key in (
+                    "node_id", "case_id", "point_id", "status", "reason_code", "metrics",
+                    "fisher", "jacobian",
+                )
+            }
+            for view in model.node_views
+        ],
         "distributions": model.distributions,
         "distances": model.distances,
         "system": model.system,
@@ -65,6 +75,23 @@ def _model_payload(model: ReportModel) -> dict[str, Any]:
 def _figure(fig: go.Figure) -> str:
     payload: str = str(fig.to_json())
     return payload
+
+
+def _fisher_presentation(fisher: dict[str, Any]) -> dict[str, str]:
+    status = str(fisher.get("status", "unknown"))
+    reason = str(fisher.get("reason_code") or "")
+    label = status if not reason else f"{status} · {reason}"
+    return {
+        "status": status,
+        "reason_code": reason,
+        "label": label,
+        "note": (
+            "Retained diagnostic values; not validated Fisher geometry. "
+            f"Status: {label}."
+            if status != "ok"
+            else ""
+        ),
+    }
 
 
 def _build_charts(model: ReportModel) -> list[dict[str, str]]:
@@ -119,6 +146,7 @@ def _fisher_charts(model: ReportModel) -> list[dict[str, str]]:
         if not fisher or fisher.get("values") is None:
             continue
         names = fisher["parameter_names"]
+        presentation = _fisher_presentation(fisher)
         figure = go.Figure(
             data=go.Heatmap(
                 z=fisher["values"],
@@ -129,7 +157,10 @@ def _fisher_charts(model: ReportModel) -> list[dict[str, str]]:
             )
         )
         figure.update_layout(
-            title=f"Fisher information · {view['node_id']} · {view['point_id']}",
+            title=(
+                f"Fisher information · {view['node_id']} · {view['point_id']} · "
+                f"{html_module.escape(presentation['label'])}"
+            ),
             yaxis={"autorange": "reversed"},
             margin={"l": 80, "r": 20, "t": 60, "b": 60},
         )
@@ -137,7 +168,10 @@ def _fisher_charts(model: ReportModel) -> list[dict[str, str]]:
             {
                 "group": "fisher",
                 "id": f"fisher__{view['node_id']}__{view['case_id']}__{view['point_id']}",
-                "title": f"{view['node_id']} / {view['point_id']}",
+                "title": (
+                    f"{view['node_id']} / {view['point_id']} · {presentation['label']}"
+                ),
+                **presentation,
                 "json": _figure(figure),
             }
         )
@@ -150,6 +184,7 @@ def _spectrum_charts(model: ReportModel) -> list[dict[str, str]]:
         fisher = view["fisher"]
         if not fisher or not fisher.get("eigenvalues"):
             continue
+        presentation = _fisher_presentation(fisher)
         figure = go.Figure(
             data=[
                 go.Bar(
@@ -162,7 +197,8 @@ def _spectrum_charts(model: ReportModel) -> list[dict[str, str]]:
         figure.update_layout(
             title=(
                 f"Fisher spectrum · {view['node_id']} · rank "
-                f"{fisher['rank']} · cond {fisher['condition_number']}"
+                f"{fisher['rank']} · cond {fisher['condition_number']} · "
+                f"{html_module.escape(presentation['label'])}"
             ),
             yaxis_title="eigenvalue",
             margin={"l": 60, "r": 20, "t": 60, "b": 50},
@@ -171,7 +207,10 @@ def _spectrum_charts(model: ReportModel) -> list[dict[str, str]]:
             {
                 "group": "spectrum",
                 "id": f"spectrum__{view['node_id']}__{view['case_id']}__{view['point_id']}",
-                "title": f"{view['node_id']} / {view['point_id']}",
+                "title": (
+                    f"{view['node_id']} / {view['point_id']} · {presentation['label']}"
+                ),
+                **presentation,
                 "json": _figure(figure),
             }
         )
@@ -250,9 +289,9 @@ def _sweep_charts(model: ReportModel) -> list[dict[str, str]]:
 
 def _local_metric_charts(model: ReportModel) -> list[dict[str, str]]:
     charts: list[dict[str, str]] = []
-    for view in model.node_views[:1]:
+    for view in model.node_views:
         fisher = view["fisher"]
-        if not fisher or fisher.get("values") is None:
+        if not fisher or fisher.get("values") is None or fisher.get("status") != "ok":
             continue
         names = fisher["parameter_names"]
         if len(names) < 2:
@@ -289,7 +328,7 @@ def _local_metric_charts(model: ReportModel) -> list[dict[str, str]]:
         figure.update_layout(
             title=(
                 "Local metric unit ball (geometry, not a confidence ellipse) · "
-                f"{view['node_id']} · {names[0]} vs {names[1]}"
+                f"{view['node_id']} · {names[0]} vs {names[1]} · ok"
             ),
             xaxis_title=f"delta {names[0]}",
             yaxis_title=f"delta {names[1]}",
@@ -299,11 +338,15 @@ def _local_metric_charts(model: ReportModel) -> list[dict[str, str]]:
         charts.append(
             {
                 "group": "local_metric",
-                "id": f"local_metric__{view['node_id']}",
-                "title": f"{view['node_id']} · {names[0]}/{names[1]}",
+                "id": (
+                    f"local_metric__{view['node_id']}__{view['case_id']}__{view['point_id']}"
+                ),
+                "title": f"{view['node_id']} · {names[0]}/{names[1]} · ok",
+                **_fisher_presentation(fisher),
                 "json": _figure(figure),
             }
         )
+        break
     return charts
 
 
