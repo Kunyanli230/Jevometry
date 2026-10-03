@@ -132,11 +132,19 @@ def _check_consistency(
 
 
 def stencil_directions(
-    parameter: ParameterSpec, theta: Mapping[str, float], kind: StencilKind
+    parameter: ParameterSpec,
+    theta: Mapping[str, float],
+    kind: StencilKind,
+    *,
+    scale: float = 1.0,
 ) -> tuple[float, ...]:
-    """Return signed step multiples for the requested stencil orientation."""
+    """Return bounded signed offsets, retaining nominal orientation for refinements.
+
+    Scales at or below one retain the nominal stencil availability and direction;
+    enlarged scales must admit their actual offsets inside the declared bounds.
+    """
     center = theta[parameter.name]
-    step = parameter.step
+    step = parameter.step * max(1.0, scale)
     if kind is StencilKind.CENTRAL and _within_bounds(parameter, center - step) and (
         _within_bounds(parameter, center + step)
     ):
@@ -178,7 +186,7 @@ def stencil_points(
     points: list[StencilPoint] = []
     for parameter in parameters:
         for scale in stencil.step_scales:
-            directions = stencil_directions(parameter, theta, stencil.kind)
+            directions = stencil_directions(parameter, theta, stencil.kind, scale=scale)
             for multiple in directions:
                 shifted = dict(theta)
                 shifted[parameter.name] = theta[parameter.name] + multiple * parameter.step * scale
@@ -245,7 +253,7 @@ def compute_jacobian(
 
     for axis, parameter in enumerate(parameters):
         step = parameter.step * nominal_scale
-        directions = stencil_directions(parameter, theta, stencil.kind)
+        directions = stencil_directions(parameter, theta, stencil.kind, scale=nominal_scale)
         if not directions:
             diagnostics.append(
                 Diagnostic(
@@ -300,7 +308,7 @@ def compute_jacobian(
             minus = points[-1.0].probabilities
             derivative = (plus - minus) / (2.0 * step)
         else:
-            ordered = sorted(points)
+            ordered = sorted(points, key=abs)
             far = points[ordered[-1]].probabilities
             near = points[ordered[0]].probabilities
             sign = 1.0 if ordered[-1] > 0 else -1.0
@@ -446,7 +454,7 @@ def _jacobian_at_scale(
     values = np.zeros((len(center.support), len(parameters)), dtype=np.float64)
     for axis, parameter in enumerate(parameters):
         step = parameter.step * scale
-        directions = stencil_directions(parameter, theta, stencil.kind)
+        directions = stencil_directions(parameter, theta, stencil.kind, scale=scale)
         if not directions:
             diagnostics.append(
                 Diagnostic(
@@ -473,7 +481,7 @@ def _jacobian_at_scale(
                 2.0 * step
             )
         else:
-            ordered = sorted(points)
+            ordered = sorted(points, key=abs)
             far = points[ordered[-1]].probabilities
             near = points[ordered[0]].probabilities
             sign = 1.0 if ordered[-1] > 0 else -1.0

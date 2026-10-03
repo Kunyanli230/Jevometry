@@ -7,6 +7,7 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
+from jevometry.geometry.derivatives import stencil_points
 from jevometry.schemas.experiment import Budget, ExperimentSpec
 from jevometry.schemas.parameters import StencilKind, StencilSpec
 
@@ -88,13 +89,22 @@ def build_acquisition_plan(
     one call and ``len(node_ids)`` when it does not.
     """
     effective_repeats = repeats if repeats is not None else experiment.budget.repeats
+    if effective_repeats <= 0:
+        raise ValueError("repeats must be positive")
+    if requests_per_point <= 0:
+        raise ValueError("requests_per_point must be positive")
     cases = len(experiment.cases)
     points = len(experiment.theta_points)
     parameters = experiment.parameter_names()
     center_requests = cases * points * requests_per_point * effective_repeats
-    per_parameter = stencil_evaluations_per_parameter(experiment.stencil)
     stencil_requests = (
-        cases * points * requests_per_point * len(parameters) * per_parameter
+        cases
+        * requests_per_point
+        * effective_repeats
+        * sum(
+            len(stencil_points(theta, experiment.parameters(), experiment.stencil))
+            for theta in experiment.theta_points
+        )
         if include_stencil
         else 0
     )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import httpx2
 import pytest
@@ -131,6 +132,175 @@ def test_replay_refuses_version_mixing(tmp_path: Path) -> None:
     with pytest.raises(ReplayError) as error:
         replay.evaluate_point(point)
     assert error.value.reason_code == "fingerprint_mismatch"
+
+
+@pytest.fixture
+def recorded_run(tmp_path: Path) -> tuple[Path, dict[str, int]]:
+    counter = {"calls": 0}
+    directory = tmp_path / "recorded"
+    Experiment.from_spec(build_spec()).run(
+        build_live_adapter(counter), live=True, repeats=2, output=directory
+    )
+    return directory, counter
+
+
+def center_point(*, repeat: int = 0) -> ExperimentPoint:
+    return ExperimentPoint(
+        case=CaseSpec(id="c1", state="state"),
+        theta={"theta": 0.0},
+        point_id=point_id({"theta": 0.0}),
+        repeat=repeat,
+    )
+
+
+def read_recorded_traces(directory: Path) -> list[dict[str, Any]]:
+    return [
+        json.loads(line)
+        for line in (directory / "traces.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def write_recorded_traces(directory: Path, traces: list[dict[str, Any]]) -> None:
+    (directory / "traces.jsonl").write_text(
+        "".join(json.dumps(trace) + "\n" for trace in traces), encoding="utf-8"
+    )
+
+
+def test_replay_requires_the_requested_repeat(
+    recorded_run: tuple[Path, dict[str, int]],
+) -> None:
+    directory, counter = recorded_run
+    calls = counter["calls"]
+    replay = ReplayAdapter(directory, system_id="replay-test")
+    assert replay.evaluate_point(center_point(repeat=1))[0].repeat == 1
+    with pytest.raises(ReplayError) as error:
+        replay.evaluate_point(center_point(repeat=2))
+    assert error.value.reason_code == "missing_capture"
+    assert "repeat 2" in str(error.value)
+    assert counter["calls"] == calls
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        {"model": "different-model"},
+        {"adapter_version": "other-version"},
+        {"provider": "other-provider"},
+        {"question_hashes": {"applicable": "sha256:deadbeef"}},
+    ],
+)
+def test_replay_checks_each_independent_declaration(
+    recorded_run: tuple[Path, dict[str, int]], declaration: dict[str, Any]
+) -> None:
+    directory, counter = recorded_run
+    calls = counter["calls"]
+    replay = ReplayAdapter(directory, system_id="replay-test", **declaration)
+    with pytest.raises(ReplayError) as error:
+        replay.evaluate_point(center_point())
+    assert error.value.reason_code == "fingerprint_mismatch"
+    assert counter["calls"] == calls
+
+
+def test_replay_validates_selected_repeat_fingerprint(
+    recorded_run: tuple[Path, dict[str, int]],
+) -> None:
+    directory, _ = recorded_run
+    traces = read_recorded_traces(directory)
+    for trace in traces:
+        if trace["stencil_role"] == "center" and trace["repeat"] == 1:
+            trace["request_fingerprint"] = "sha256:corrupted-repeat-one"
+    write_recorded_traces(directory, traces)
+    replay = ReplayAdapter(
+        directory,
+        system_id="replay-test",
+        model="test-model",
+        adapter_version=ADAPTER_VERSION,
+        question_hashes={
+            "applicable": traces[0]["distribution"]["semantic_hash"],
+        },
+    )
+    assert replay.evaluate_point(center_point())[0].status.ok
+    with pytest.raises(ReplayError) as error:
+        replay.evaluate_point(center_point(repeat=1))
+    assert error.value.reason_code == "fingerprint_mismatch"
+
+
+def test_replay_rejects_corrupted_fingerprint_without_declarations(
+    recorded_run: tuple[Path, dict[str, int]],
+) -> None:
+    directory, _ = recorded_run
+    traces = read_recorded_traces(directory)
+    traces[0]["request_fingerprint"] = "sha256:corrupted"
+    write_recorded_traces(directory, traces)
+    replay = ReplayAdapter(directory, system_id="replay-test")
+    with pytest.raises(ReplayError) as error:
+        replay.evaluate_point(center_point())
+    assert error.value.reason_code == "fingerprint_mismatch"
+
+
+def test_replay_without_declarations_replays_all_stencil_roles(
+    recorded_run: tuple[Path, dict[str, int]],
+) -> None:
+    directory, counter = recorded_run
+    calls = counter["calls"]
+    replay = ReplayAdapter(directory, system_id="replay-test")
+    captures = run_experiment(build_spec(), replay, repeats=2)
+    # Two centers, two off-center roles per center, two repeats.
+    assert len(captures.traces) == 12
+    assert {trace.repeat for trace in captures.traces} == {0, 1}
+    assert {trace.stencil_role for trace in captures.traces} == {
+        "center", "theta:1:-1", "theta:1:+1",
+    }
+    assert all(trace.provenance["source_provider"] == "typesafe" for trace in captures.traces)
+    assert counter["calls"] == calls
+
+
+def test_replayed_captures_retain_original_provider_for_further_replay(
+    recorded_run: tuple[Path, dict[str, int]], tmp_path: Path
+) -> None:
+    directory, _ = recorded_run
+    replay = ReplayAdapter(directory, system_id="replay-test")
+    trace = replay.evaluate_point(center_point())[0]
+    replayed_directory = tmp_path / "replayed"
+    replayed_directory.mkdir()
+    write_recorded_traces(replayed_directory, [trace.model_dump(mode="json")])
+    replay_again = ReplayAdapter(
+        replayed_directory, system_id="replay-test", provider="typesafe"
+    )
+    assert replay_again.provider == "typesafe"
+    rerecorded = replay_again.evaluate_point(center_point())[0]
+    assert rerecorded.request_fingerprint == trace.request_fingerprint
+    assert rerecorded.provenance["source_provider"] == "typesafe"
+
+
+def test_replay_checks_history(
+    recorded_run: tuple[Path, dict[str, int]],
+) -> None:
+    directory, _ = recorded_run
+    replay = ReplayAdapter(directory, system_id="replay-test")
+    point = ExperimentPoint(
+        case=CaseSpec(id="c1", state="state"),
+        theta={"theta": 0.0},
+        point_id=point_id({"theta": 0.0}),
+        history={"upstream": "changed"},
+    )
+    with pytest.raises(ReplayError) as error:
+        replay.evaluate_point(point)
+    assert error.value.reason_code == "fingerprint_mismatch"
+
+
+def test_replay_allows_unspecified_source_metadata_in_existing_capture(
+    recorded_run: tuple[Path, dict[str, int]],
+) -> None:
+    directory, _ = recorded_run
+    traces = read_recorded_traces(directory)
+    # Existing analytic captures omit adapter_version; replay must avoid
+    # replacing that missing metadata with a guessed version or question id.
+    traces[0]["provenance"].pop("adapter_version")
+    write_recorded_traces(directory, traces)
+    replay = ReplayAdapter(directory, system_id="replay-test")
+    assert replay.evaluate_point(center_point())[0].status.ok
 
 
 def test_replay_reports_missing_directory(tmp_path: Path) -> None:

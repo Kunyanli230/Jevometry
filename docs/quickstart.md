@@ -61,6 +61,7 @@ jevometry validate project/experiment.yaml
 jevometry run project/experiment.yaml --output runs/example
 jevometry analyze runs/example
 jevometry report runs/example --output runs/example/report.html
+jevometry verify runs/example --json
 jevometry infer runs/example --contract contract.yaml --simulate
 jevometry compare runs/a runs/b --output comparison/
 jevometry doctor
@@ -68,6 +69,10 @@ jevometry doctor
 
 `run` only accepts offline providers (analytic, replay, module) unless
 `--live` is passed for the TypeSafe provider.
+
+`verify` is read-only. It checks checksum coverage and retained revisions, and
+exits with code 2 when evidence is missing or changed. Saving a report creates
+a new analysis revision with updated checksums.
 
 ### Exit codes
 

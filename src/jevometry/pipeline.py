@@ -11,7 +11,7 @@ import numpy as np
 
 from jevometry.adapters.base import SystemAdapter
 from jevometry.analysis import Analysis, analyze
-from jevometry.artifacts.store import RunStore
+from jevometry.artifacts.store import RUN_FILES, RunStore
 from jevometry.config import ExperimentConfig, build_adapter, load_config
 from jevometry.experiments.acquisition import Captures, run_experiment
 from jevometry.experiments.cache import CaptureCache
@@ -356,20 +356,32 @@ def render_report(
     store: RunStore | None = None
     if run_directory is not None:
         store = RunStore.load(Path(run_directory))
-        if analysis.document.analysis_revision == 0:
-            analysis.document = analysis.document.model_copy(
-                update={"analysis_revision": store.next_analysis_revision()}
-            )
+        analysis.document = analysis.document.model_copy(
+            update={"analysis_revision": store.next_analysis_revision()}
+        )
     html_path = Path(output)
-    html_payload = dict(inference) if inference is not None else None
-    html = render_html(analysis, inference=html_payload)
-    html_path.parent.mkdir(parents=True, exist_ok=True)
-    html_path.write_text(html, encoding="utf-8")
     markdown_path = (
         Path(markdown_output)
         if markdown_output is not None
         else html_path.with_suffix(".md")
     )
+    if html_path.resolve() == markdown_path.resolve():
+        raise ValueError("HTML and Markdown report outputs must be different paths")
+    if store is not None:
+        protected = {
+            (store.root / name).resolve()
+            for name in RUN_FILES
+            if name not in {"report.html", "report.md"}
+        }
+        analysis_root = (store.root / "analysis").resolve()
+        for target in (html_path, markdown_path):
+            resolved = target.resolve()
+            if resolved in protected or resolved.is_relative_to(analysis_root):
+                raise ValueError(f"report output would overwrite a managed artifact: {target}")
+    html_payload = dict(inference) if inference is not None else None
+    html = render_html(analysis, inference=html_payload)
+    html_path.parent.mkdir(parents=True, exist_ok=True)
+    html_path.write_text(html, encoding="utf-8")
     markdown_payload = dict(inference) if inference is not None else None
     markdown = render_markdown(analysis, inference=markdown_payload)
     markdown_path.write_text(markdown, encoding="utf-8")
@@ -380,6 +392,7 @@ def render_report(
             report_html=html,
             report_markdown=markdown,
         )
+        store.finalize_checksums()
     return html_path, markdown_path
 
 

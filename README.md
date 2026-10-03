@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/Kunyanli230/Jevometry/actions/workflows/ci.yml/badge.svg)](https://github.com/Kunyanli230/Jevometry/actions/workflows/ci.yml)
 
-`v0.1.0 alpha` · Python 3.11–3.13 · MIT · offline core
+`v0.2.0 alpha` · Python 3.11–3.13 · MIT · offline core
 
 Jevometry captures explicit Jev decision probabilities and measures local
 sensitivity, Fisher information, and the information retained by a final
@@ -112,18 +112,25 @@ and reporting work; its Fisher estimates should not be used as reliable
 measurements. The example declares no joint observation model, so it produces
 neither system Fisher information nor a CRLB.
 
-<details>
-<summary>Known v0.1 reporting and request-estimation issues</summary>
+## Changes in v0.2
 
-The live example's request estimator displays 11 evaluations although it
-makes 27 before retries. The capability summary may say
-`missing_stencil_captures` when captures exist but derivatives are unstable.
-A node marked `unstable` may also contain a Fisher sub-result marked `ok`;
-check the parent status before using its number. See
+Request plans now count every repeated stencil evaluation and respect the
+actual boundary stencil. Unstable derivatives propagate their status to
+dependent Fisher quantities; capability summaries distinguish unavailable
+captures from unstable measurements. Replay requires the exact recorded repeat
+and checks declared source identity without substituting another capture.
+
+Audit a saved run offline with:
+
+```bash
+uv run jevometry verify examples/three_agent_cleaning/output --json
+```
+
+The audit checks managed artifacts and retained analysis revisions. Reports
+save a new revision and refresh checksums. See the
+[v0.2 scope and migration notes](docs/v0.2.md),
 [numerical limits](docs/numerical_limits.md) and
 [data handling](docs/data_handling.md).
-
-</details>
 
 ## Develop
 

@@ -50,6 +50,11 @@ guarantees.
 
 ## Reproducibility
 
+v0.2 corrects the near/far ordering in backward finite differences. Reanalyze
+v0.1 results using backward stencils, including automatic upper-bound fallback;
+the old error could pass h/h2 stability while overstating Fisher information.
+See [v0.2 migration](v0.2.md) for an independent closed-form example.
+
 Simulations use explicit seeds.  Derivative results record the stencil, step
 sizes and relative stability.  Manifests record the experiment hash, provider
 mode, model, budget and analysis revisions.  NPZ arrays are keyed by node,

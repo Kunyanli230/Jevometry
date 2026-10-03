@@ -104,6 +104,9 @@ def run_experiment(
             f"acquisition plan requires {plan.expected_requests} attempts, exceeding "
             f"max_attempts={experiment.budget.max_attempts}",
         )
+    if store is not None and store.manifest is not None:
+        store.manifest.budget = {**store.manifest.budget, **plan.summary()}
+        store.write_manifest()
     started = utc_now()
     traces: list[EvaluationTrace] = []
     notes: list[str] = []

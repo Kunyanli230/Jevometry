@@ -582,6 +582,7 @@ class TypeSafeAdapter:
                     rendered_fingerprint=rendered.fingerprint,
                     request_fingerprint=fingerprints[node_id],
                     semantic_request_hash=fingerprints[node_id],
+                    stencil_role=point.stencil_role,
                     distribution=record,
                     status=ProviderStatus(
                         ok=conversion.status is MetricStatus.OK,
@@ -643,6 +644,7 @@ class TypeSafeAdapter:
             theta=dict(point.theta),
             rendered_fingerprint=rendered_fingerprint,
             request_fingerprint=request_fingerprint_value,
+            stencil_role=point.stencil_role,
             status=ProviderStatus(
                 ok=False,
                 model_requested=self.model,

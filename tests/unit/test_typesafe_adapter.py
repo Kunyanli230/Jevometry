@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+from dataclasses import replace
 from typing import Any
 
 import httpx2
@@ -147,6 +149,56 @@ def test_adapter_batches_questions_and_records_usage() -> None:
     assert adapter.tracker.known_input_tokens == 12
     assert len(recorder.records) == 1
     assert "test-key" not in json.dumps(recorder.records[0].to_json())
+
+
+@pytest.mark.parametrize("stencil_role", ["center", "theta:1:+1", "theta:1:-1"])
+@pytest.mark.parametrize("status_code", [200, 401])
+def test_adapter_preserves_stencil_role_and_request_identity(
+    stencil_role: str, status_code: int
+) -> None:
+    # These digests were independently calculated from the declared Noul
+    # question and identity-rendered {"theta": 0.0}, without adapter helpers.
+    canonical_request = {
+        "provider": "typesafe",
+        "model": "test-model",
+        "adapter_version": ADAPTER_VERSION,
+        "node_id": "applicable",
+        "question_hash": "sha256:a96e6bafcf4bb225ccf020ba6865c042827d2373e0569ece22c50e5859dcedcd",
+        "rendered": "sha256:0b46d5760416c09c35880b2bb7ec209ef335db40b9985ad54613148ee83a3fdc",
+        "theta": {"theta": 0.0},
+        "history": {},
+        "stencil_role": stencil_role,
+    }
+    expected_fingerprint = "sha256:" + hashlib.sha256(
+        json.dumps(canonical_request, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if status_code == 401:
+            return httpx2.Response(401, json={"error": "invalid key"})
+        return httpx2.Response(
+            200, json=response_payload(applicable={"type": "noul", "noul": 0.5})
+        )
+
+    adapter = TypeSafeAdapter(
+        model="test-model",
+        nodes={"applicable": typesafe_noul_question("applicable")},
+        client=make_client(handler),
+    )
+    experiment_point = replace(point(), stencil_role=stencil_role)
+    first = adapter.evaluate_point(experiment_point)[0]
+    repeated = adapter.evaluate_point(replace(experiment_point, repeat=1))[0]
+    assert first.status.ok is (status_code == 200)
+    assert first.stencil_role == repeated.stencil_role == stencil_role
+    assert first.request_fingerprint == repeated.request_fingerprint == expected_fingerprint
+    assert repeated.repeat == 1
+    if status_code == 200:
+        assert first.distribution is not None
+        assert first.distribution.request_fingerprint == expected_fingerprint
+        assert first.semantic_request_hash == expected_fingerprint
+    else:
+        assert first.status.reason_code == "auth_error"
+        assert first.distribution is None
 
 
 def test_auth_error_is_not_retried_and_structured() -> None:

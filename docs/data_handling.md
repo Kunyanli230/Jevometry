@@ -63,5 +63,16 @@ semantic request hash but receive distinct capture ids.
 
 ## Integrity
 
-`checksums.json` records a sha256 for every artifact.  `verify_checksums`
-recomputes them; mismatches are reported rather than ignored.
+`checksums.json` records a SHA256 for managed run artifacts, resolved provider
+configuration, questions, inference results and retained analysis revisions.
+`jevometry verify RUN_DIRECTORY [--json]` checks coverage, recorded hashes and
+the latest metrics revision without writing files. Missing, empty or malformed
+indexes fail; referenced paths must stay inside the run directory, including
+symlink targets. Exit code 2 means the audit failed.
+
+`verify_checksums` recomputes indexed hashes and returns mismatched paths; it
+raises `ValueError` when an index is unavailable or invalid. Checksums detect
+changes relative to the saved index; they are not a signature establishing who
+produced the run. User files outside the managed artifact set are not covered.
+
+See [v0.2 migration](v0.2.md) before auditing an older run.

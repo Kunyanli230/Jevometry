@@ -38,7 +38,7 @@ from jevometry.schemas.parameters import ParameterSpec, StencilSpec
 from jevometry.schemas.questions import QuestionSpec
 from jevometry.schemas.system import CompositionMode, SystemSpec
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "Analysis",

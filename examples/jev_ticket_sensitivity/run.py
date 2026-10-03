@@ -248,13 +248,15 @@ def run_live(model: str) -> int:
         update={"max_attempts": LIVE_BUDGET_ATTEMPTS, "repeats": LIVE_REPEATS}
     )
     experiment = Experiment.from_spec(spec)
-    plan = experiment.spec
-    expected = (
-        len(plan.cases)
-        * len(plan.theta_points)
-        * (LIVE_REPEATS + 4 * len(plan.parameter_names()))
+    from jevometry.experiments.design import build_acquisition_plan
+
+    plan = build_acquisition_plan(
+        spec,
+        adapter.describe().node_ids(),
+        live=True,
+        requests_per_point=adapter.requests_per_point(),
     )
-    print(f"live budget: expected {expected} attempts, cap {LIVE_BUDGET_ATTEMPTS}")
+    print(f"live budget: expected {plan.expected_requests} attempts, cap {LIVE_BUDGET_ATTEMPTS}")
     captures = experiment.run(adapter, live=True, output=OUTPUT / "live")
     print(f"live traces: {len(captures.traces)}; incomplete: {captures.incomplete}")
     if captures.incomplete:
