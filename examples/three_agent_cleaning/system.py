@@ -1,8 +1,8 @@
-"""Three declared agent distributions and a fixed cleaning decision rule."""
+"""Three declared agent distributions and interchangeable cleaning decision rules."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping, Sequence
 from itertools import product
 
 import numpy as np
@@ -24,6 +24,7 @@ from jevometry.systems.pushforward import AggregationMap
 FloatArray = NDArray[np.float64]
 CENTER = np.asarray([0.7, 0.3], dtype=np.float64)
 PARAMETERS = ("evidence", "ambiguity")
+RuleFn = Callable[[tuple[str, str, str]], str]
 
 
 def _agent(
@@ -55,6 +56,7 @@ def _agent(
 
 
 def final_action(outcome: tuple[str, str, str]) -> str:
+    """Baseline coordinator: reject / auto_fix / human_review."""
     applicable, repair, risk = outcome
     if applicable == "false" or repair == "quarantine" or risk == "2":
         return "reject"
@@ -63,9 +65,62 @@ def final_action(outcome: tuple[str, str, str]) -> str:
     return "human_review"
 
 
-def build_system() -> tuple[dict[str, AnalyticNode], AnalyticJointModel, AggregationMap]:
-    """Return the agents, declared product law and deterministic coordinator."""
-    nodes = {
+def final_action_stricter(outcome: tuple[str, str, str]) -> str:
+    """Stricter: mid-risk also rejects (in addition to baseline rejects)."""
+    applicable, repair, risk = outcome
+    if applicable == "false" or repair == "quarantine" or risk in {"1", "2"}:
+        return "reject"
+    if repair == "normalize" and risk == "0":
+        return "auto_fix"
+    return "human_review"
+
+
+def final_action_wider(outcome: tuple[str, str, str]) -> str:
+    """Wider: impute+low-risk can also auto-apply, with a distinct label.
+
+    Reject conditions match baseline. Using separate auto_normalize /
+    auto_impute labels avoids merging those paths into one coarse action
+    (or into human_review), so Fisher retention is typically higher.
+    """
+    applicable, repair, risk = outcome
+    if applicable == "false" or repair == "quarantine" or risk == "2":
+        return "reject"
+    if repair == "normalize" and risk == "0":
+        return "auto_normalize"
+    if repair == "impute" and risk == "0":
+        return "auto_impute"
+    return "human_review"
+
+
+def final_action_near_identity(outcome: tuple[str, str, str]) -> str:
+    """Near-identity upper bound: one label per joint outcome tuple."""
+    applicable, repair, risk = outcome
+    return f"{applicable}|{repair}|{risk}"
+
+
+def build_aggregation_map(
+    name: str,
+    rule: RuleFn,
+    node_order: Sequence[str],
+    outcomes: Mapping[str, Sequence[str]],
+    *,
+    description: str | None = None,
+) -> AggregationMap:
+    """Build a theta-independent AggregationMap covering the Cartesian product."""
+    mapping = {
+        path: rule(path)  # type: ignore[arg-type]
+        for path in product(*(outcomes[name] for name in node_order))
+    }
+    return AggregationMap(
+        name=name,
+        mapping=mapping,
+        theta_dependent=False,
+        description=description,
+    )
+
+
+def _build_nodes() -> dict[str, AnalyticNode]:
+    return {
         "applicability_agent": _agent(
             "applicability_agent",
             noul_question("applicability_agent"),
@@ -92,6 +147,9 @@ def build_system() -> tuple[dict[str, AnalyticNode], AnalyticJointModel, Aggrega
             [[1.526, -0.763], [0.0, 0.0], [-0.763, 1.526]],
         ),
     }
+
+
+def _build_joint(nodes: Mapping[str, AnalyticNode]) -> AnalyticJointModel:
     node_order = list(nodes)
     outcomes = {name: node.support for name, node in nodes.items()}
 
@@ -114,7 +172,7 @@ def build_system() -> tuple[dict[str, AnalyticNode], AnalyticJointModel, Aggrega
             PARAMETERS,
         )
 
-    joint = AnalyticJointModel(
+    return AnalyticJointModel(
         node_order=node_order,
         parameter_names=list(PARAMETERS),
         probability_function=probabilities,
@@ -123,12 +181,47 @@ def build_system() -> tuple[dict[str, AnalyticNode], AnalyticJointModel, Aggrega
         construction_mode=ConstructionMode.DECLARED_PRODUCT,
         assumptions=["agents are conditionally independent given evidence and ambiguity"],
     )
-    mapping = {
-        path: final_action(path) for path in product(*(outcomes[name] for name in node_order))
-    }
+
+
+RULE_SPECS: list[tuple[str, RuleFn, str]] = [
+    ("baseline", final_action, "Fixed coordinator: reject, auto_fix or human_review"),
+    ("stricter", final_action_stricter, "Mid-risk also rejects"),
+    ("wider", final_action_wider, "Impute+low-risk can auto-apply (distinct labels)"),
+    (
+        "near_identity",
+        final_action_near_identity,
+        "One label per joint outcome (Fisher retention upper bound)",
+    ),
+]
+
+
+def build_rule_maps(
+    nodes: Mapping[str, AnalyticNode] | None = None,
+) -> list[tuple[str, AggregationMap]]:
+    """Return named AggregationMaps for baseline and alternative rules."""
+    if nodes is None:
+        nodes = _build_nodes()
+    node_order = list(nodes)
+    outcomes = {name: node.support for name, node in nodes.items()}
+    return [
+        (
+            name,
+            build_aggregation_map(name, rule, node_order, outcomes, description=description),
+        )
+        for name, rule, description in RULE_SPECS
+    ]
+
+
+def build_system() -> tuple[dict[str, AnalyticNode], AnalyticJointModel, AggregationMap]:
+    """Return the agents, declared product law and baseline coordinator."""
+    nodes = _build_nodes()
+    joint = _build_joint(nodes)
+    baseline = dict(build_rule_maps(nodes))["baseline"]
+    # Keep the historical AggregationMap name so run.py / reports stay stable.
     policy = AggregationMap(
         name="final_action",
-        mapping=mapping,
-        description="Fixed coordinator: reject, auto_fix or human_review",
+        mapping=baseline.mapping,
+        theta_dependent=False,
+        description=baseline.description,
     )
     return nodes, joint, policy
