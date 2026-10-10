@@ -1,0 +1,108 @@
+{
+  "live_run_id": "ticket-sensitivity-live-20261010T143812-0",
+  "live_created_utc": "2026-10-10T14:38:16Z",
+  "synthetic_run_id": "ticket-sensitivity-20261010T143810-0",
+  "center": {
+    "amount": 250.0,
+    "wait_hours": 8.0
+  },
+  "live_steps": {
+    "amount": 0.25,
+    "wait_hours": 0.05
+  },
+  "live_stencil": "single-scale step_scales=[1.0]",
+  "offline_stencil": "two-scale step_scales=[1.0, 0.5]",
+  "live_center_nodes": [
+    {
+      "source": "live",
+      "node": "request_type",
+      "amount": 250.0,
+      "wait_hours": 8.0,
+      "entropy_nats": 1.0397207708399179,
+      "fisher_trace": 0.8576000000000006,
+      "fisher_diag_amount": 0.1376,
+      "fisher_diag_wait_hours": 0.7200000000000005,
+      "jacobian_status": "ok",
+      "fisher_status": "ok",
+      "identifiability": null,
+      "run_id": "ticket-sensitivity-live-20261010T143812-0"
+    },
+    {
+      "source": "live",
+      "node": "needs_escalation",
+      "amount": 250.0,
+      "wait_hours": 8.0,
+      "entropy_nats": 0.5004024235381879,
+      "fisher_trace": 0.08500000000000016,
+      "fisher_diag_amount": 0.02250000000000004,
+      "fisher_diag_wait_hours": 0.06250000000000012,
+      "jacobian_status": "ok",
+      "fisher_status": "ok",
+      "identifiability": "not_identifiable",
+      "run_id": "ticket-sensitivity-live-20261010T143812-0"
+    },
+    {
+      "source": "live",
+      "node": "impact",
+      "amount": 250.0,
+      "wait_hours": 8.0,
+      "entropy_nats": 0.3089109846691023,
+      "fisher_trace": 2.613354037267081,
+      "fisher_diag_amount": 0.15372670807453415,
+      "fisher_diag_wait_hours": 2.4596273291925472,
+      "jacobian_status": "ok",
+      "fisher_status": "ok",
+      "identifiability": "not_identifiable",
+      "run_id": "ticket-sensitivity-live-20261010T143812-0"
+    }
+  ],
+  "synthetic_center_nodes": [
+    {
+      "source": "synthetic",
+      "node": "request_type",
+      "amount": 250.0,
+      "wait_hours": 8.0,
+      "entropy_nats": 1.0970625372145866,
+      "fisher_trace": 0.0005148198198583143,
+      "fisher_diag_amount": 8.201320509602603e-07,
+      "fisher_diag_wait_hours": 0.000513999687807354,
+      "jacobian_status": "ok",
+      "fisher_status": "ok",
+      "identifiability": null,
+      "run_id": "ticket-sensitivity-20261010T143810-0"
+    },
+    {
+      "source": "synthetic",
+      "node": "needs_escalation",
+      "amount": 250.0,
+      "wait_hours": 8.0,
+      "entropy_nats": 0.691898741325677,
+      "fisher_trace": 0.00035323846296164354,
+      "fisher_diag_amount": 2.5536103812278043e-06,
+      "fisher_diag_wait_hours": 0.00035068485258041575,
+      "jacobian_status": "ok",
+      "fisher_status": "ok",
+      "identifiability": "not_identifiable",
+      "run_id": "ticket-sensitivity-20261010T143810-0"
+    },
+    {
+      "source": "synthetic",
+      "node": "impact",
+      "amount": 250.0,
+      "wait_hours": 8.0,
+      "entropy_nats": 1.0982420211508854,
+      "fisher_trace": 8.173473470040724e-05,
+      "fisher_diag_amount": 1.3106823770952615e-06,
+      "fisher_diag_wait_hours": 8.042405232331198e-05,
+      "jacobian_status": "ok",
+      "fisher_status": "ok",
+      "identifiability": null,
+      "run_id": "ticket-sensitivity-20261010T143810-0"
+    }
+  ],
+  "notes": [
+    "System / action Fisher unsupported (no joint model; deterministic policy).",
+    "needs_escalation and impact remain rank-deficient (not_identifiable) after step shrink.",
+    "Before/after stability refers to PR #3 stencil change; unstable Fisher values are not validated."
+  ]
+}

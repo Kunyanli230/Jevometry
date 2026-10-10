@@ -1,0 +1,4 @@
+node,before_status,before_reason,after_status,after_reason,amount_step_before,wait_step_before,amount_step_after,wait_step_after,live_stencil_after
+request_type,unstable,step_stability_exceeded,ok,,1.0,0.25,0.25,0.05,single-scale
+needs_escalation,unstable,step_stability_exceeded,ok,,1.0,0.25,0.25,0.05,single-scale
+impact,unstable,step_stability_exceeded,ok,,1.0,0.25,0.25,0.05,single-scale
