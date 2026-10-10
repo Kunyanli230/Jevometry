@@ -24,8 +24,11 @@ from typing import Any
 import numpy as np
 from scipy.special import expit
 
+from itertools import product
+
 from jevometry.adapters.analytic import (
     AnalyticAdapter,
+    AnalyticJointModel,
     AnalyticNode,
     choice_question,
     noul_question,
@@ -33,7 +36,9 @@ from jevometry.adapters.analytic import (
 )
 from jevometry.experiments.renderer import StructuredRenderer
 from jevometry.schemas.common import RoutingSemantics
-from jevometry.schemas.system import CompositionMode
+from jevometry.schemas.joint import ConstructionMode
+from jevometry.systems.joint import product_joint_from_nodes, product_joint_jacobian
+from jevometry.systems.pushforward import AggregationMap
 
 ACTIONS = ("standard_queue", "priority_queue", "refund_review", "escalate")
 
@@ -216,6 +221,89 @@ class TicketPolicy:
         return self.action(distribution)
 
 
+PARAMETERS = ("amount", "wait_hours")
+
+
+def outcome_to_surrogate_action(
+    outcome: tuple[str, ...], *, policy: "TicketPolicy | None" = None
+) -> str:
+    """Map a hard joint outcome to ACTIONS under the declared-product surrogate.
+
+    Matches ``TicketPolicy.action`` on one-hot node outcomes. Used for
+    AggregationMap / information-loss; not production soft-probability routing.
+    """
+    rule = policy or TicketPolicy()
+    request, escalation, impact = outcome
+    distribution = {
+        "request_type.billing": 1.0 if request == "billing" else 0.0,
+        "request_type.technical": 1.0 if request == "technical" else 0.0,
+        "request_type.refund": 1.0 if request == "refund" else 0.0,
+        "needs_escalation.false": 1.0 if escalation == "false" else 0.0,
+        "needs_escalation.true": 1.0 if escalation == "true" else 0.0,
+        "impact.0": 1.0 if impact == "0" else 0.0,
+        "impact.1": 1.0 if impact == "1" else 0.0,
+        "impact.2": 1.0 if impact == "2" else 0.0,
+    }
+    return rule.action(distribution)
+
+
+def build_declared_product_surrogate(
+    nodes: Mapping[str, AnalyticNode],
+    *,
+    policy: "TicketPolicy | None" = None,
+) -> tuple[AnalyticJointModel, AggregationMap]:
+    """Declared product joint + theta-independent AggregationMap onto ACTIONS."""
+    rule = policy or TicketPolicy()
+    node_order = list(nodes)
+    outcomes = {name: node.support for name, node in nodes.items()}
+    assumptions = [
+        "surrogate: nodes are conditionally independent given amount and wait_hours",
+        "surrogate AggregationMap is theta-independent; not production routing",
+    ]
+
+    def probabilities(theta: Mapping[str, float]):
+        joint = product_joint_from_nodes(
+            node_order,
+            outcomes,
+            {name: node.probabilities(theta) for name, node in nodes.items()},
+            assumptions=assumptions,
+            theta=theta,
+        )
+        return joint.outcomes, np.asarray(joint.probabilities, dtype=np.float64)
+
+    def jacobian(theta: Mapping[str, float]):
+        return product_joint_jacobian(
+            node_order,
+            outcomes,
+            {name: node.probabilities(theta) for name, node in nodes.items()},
+            {name: node.jacobian(theta) for name, node in nodes.items()},
+            PARAMETERS,
+        )
+
+    joint = AnalyticJointModel(
+        node_order=node_order,
+        parameter_names=list(PARAMETERS),
+        probability_function=probabilities,
+        jacobian_function=jacobian,
+        model_identity="ticket:declared-product-surrogate:v1",
+        construction_mode=ConstructionMode.DECLARED_PRODUCT,
+        assumptions=assumptions,
+    )
+    mapping = {
+        path: outcome_to_surrogate_action(path, policy=rule)
+        for path in product(*(outcomes[name] for name in node_order))
+    }
+    aggregation = AggregationMap(
+        name="surrogate_ticket_action",
+        mapping=mapping,
+        description=(
+            "Declared-product surrogate coordinator onto ACTIONS; "
+            "not the production soft-probability TicketPolicy routing"
+        ),
+    )
+    return joint, aggregation
+
+
 def node_probability_map(
     nodes: Mapping[str, AnalyticNode], theta: Mapping[str, float]
 ) -> dict[str, float]:
@@ -229,24 +317,25 @@ def node_probability_map(
 
 
 class TicketSystemAdapter(AnalyticAdapter):
-    """Analytic ticket system with a declared deterministic policy."""
+    """Analytic ticket system with a declared product surrogate and soft policy."""
 
     def __init__(self, *, system_id: str, policy: TicketPolicy | None = None) -> None:
         nodes = build_nodes()
+        self.policy = policy or TicketPolicy()
+        joint, aggregation = build_declared_product_surrogate(nodes, policy=self.policy)
         super().__init__(
             system_id=system_id,
             nodes=nodes,
+            joint_model=joint,
             renderer=renderer(),
             routing_semantics=RoutingSemantics.DETERMINISTIC_POLICY,
             description=(
-                "Synthetic ticket triage with a deterministic policy; probabilities are "
-                "reported distributions, not action frequencies"
+                "Synthetic ticket triage: reported node distributions with a deterministic "
+                "soft policy; DECLARED_PRODUCT joint + AggregationMap are a surrogate for "
+                "information-loss analysis, not production routing frequencies"
             ),
         )
-        self.policy = policy or TicketPolicy()
-        self._system = self._system.model_copy(
-            update={"composition_mode": CompositionMode.NODE_ONLY}
-        )
+        self.surrogate_aggregation = aggregation
 
     def action(self, theta: Mapping[str, float]) -> str:
         return self.policy.action(node_probability_map(self.nodes, theta))

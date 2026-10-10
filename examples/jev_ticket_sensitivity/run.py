@@ -176,7 +176,11 @@ def run_offline() -> int:
     adapter = TicketSystemAdapter(system_id="ticket-sensitivity")
     experiment = Experiment.from_spec(build_spec())
     captures = experiment.run(adapter, output=OUTPUT / "synthetic")
-    analysis = analyze(captures, adapter=adapter)
+    analysis = analyze(
+        captures,
+        adapter=adapter,
+        aggregation=adapter.surrogate_aggregation,
+    )
     add_policy_metrics(analysis, adapter)
     render_report(
         analysis,
@@ -195,10 +199,15 @@ def run_offline() -> int:
             )
     system = analysis.document.system
     assert system is not None
-    print("== C2. system composition ==")
+    print("== C2. system composition (declared-product surrogate) ==")
     print(f"  mode={system.mode} status={system.status.value} reason={system.reason_code}")
-    assert system.status is MetricStatus.UNSUPPORTED
-    print("== C3. deterministic policy ==")
+    assert system.mode == "declared_product"
+    assert system.status is MetricStatus.OK
+    if system.information_loss:
+        loss = system.information_loss[0]
+        print(f"  information_loss_trace={loss.value!r} status={loss.status.value}")
+        assert loss.status is MetricStatus.OK
+    print("== C3. deterministic soft policy (production routing; separate) ==")
     flips = next(
         metric for metric in analysis.document.metrics if metric.name == "policy_flips"
     )
