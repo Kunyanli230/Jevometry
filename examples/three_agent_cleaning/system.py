@@ -98,6 +98,30 @@ def final_action_near_identity(outcome: tuple[str, str, str]) -> str:
     return f"{applicable}|{repair}|{risk}"
 
 
+def final_action_quarantine_review(outcome: tuple[str, str, str]) -> str:
+    """Softer: quarantine goes to human_review instead of reject.
+
+    Reject only on inapplicable or high risk. Quarantine is treated as a
+    reviewable decision rather than an automatic hard reject.
+    """
+    applicable, repair, risk = outcome
+    if applicable == "false" or risk == "2":
+        return "reject"
+    if repair == "quarantine":
+        return "human_review"
+    if repair == "normalize" and risk == "0":
+        return "auto_fix"
+    return "human_review"
+
+
+def final_action_coarse_binary(outcome: tuple[str, str, str]) -> str:
+    """Coarse binary gate: reject vs proceed (merges auto_fix and review)."""
+    applicable, repair, risk = outcome
+    if applicable == "false" or repair == "quarantine" or risk == "2":
+        return "reject"
+    return "proceed"
+
+
 def build_aggregation_map(
     name: str,
     rule: RuleFn,
@@ -187,6 +211,16 @@ RULE_SPECS: list[tuple[str, RuleFn, str]] = [
     ("baseline", final_action, "Fixed coordinator: reject, auto_fix or human_review"),
     ("stricter", final_action_stricter, "Mid-risk also rejects"),
     ("wider", final_action_wider, "Impute+low-risk can auto-apply (distinct labels)"),
+    (
+        "quarantine_review",
+        final_action_quarantine_review,
+        "Quarantine routes to human_review instead of reject",
+    ),
+    (
+        "coarse_binary",
+        final_action_coarse_binary,
+        "Binary reject vs proceed (auto_fix and review merged)",
+    ),
     (
         "near_identity",
         final_action_near_identity,

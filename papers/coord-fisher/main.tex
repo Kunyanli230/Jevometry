@@ -1,0 +1,469 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!60!black
+}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\title{Comparing Multi-Agent Coordination Rules\\
+via Fisher Information Loss after Action Aggregation}
+\author{
+  Heath Li\\
+  \texttt{Kunyanli230/Jevometry}\\
+  \small Working draft toward JAAMAS / arXiv
+}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Multi-agent decision systems often separate \emph{perception}---specialized
+agents that emit categorical distributions over local outcomes---from
+\emph{coordination}---a deterministic rule that maps the joint outcome to a
+small action alphabet (e.g., reject, auto-apply, escalate to a human).
+While perception models and joint constructions have received careful
+treatment in Dec-POMDP active perception and information gathering, the
+coordination layer is frequently designed by heuristics and then evaluated only
+through task reward or throughput. This paper asks a complementary question:
+\emph{holding the agents' output distributions fixed, which coordination rules
+destroy the least Fisher information about the underlying parameters?}
+
+We formalize coordination as a $\theta$-independent aggregation map $A=f(Z)$
+and quantify information loss by the data-processing gap
+$I_Z(\theta)-I_A(\theta)\succeq 0$ between the Fisher information of the
+declared joint and that of its pushforward. Instantiating the framework in the
+Jevometry three-agent data-cleaning council (applicability, repair, risk)
+under a declared product joint, we compare six pure rules---baseline,
+stricter, wider, quarantine-to-review, coarse binary, and a near-identity
+upper bound---on a grid over evidence and ambiguity. At the design centre,
+baseline coordination discards roughly half of $\mathrm{tr}(I_Z)$; softening
+quarantine into human review recovers a substantial fraction of that loss,
+while coarsening to a binary reject/proceed gate loses still more. The
+ordering $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
+\le\mathrm{stricter}$ is stable at the centre and informative across the grid.
+We discuss design implications for agent councils, API constraints that force
+deterministic maps, and limitations of analytic softmax families relative to
+live decision-model APIs. Accompanying code and reproducible tables ship with
+the Jevometry repository.
+\end{abstract}
+
+\section{Introduction}
+
+Large language models and specialized decision APIs have made it cheap to
+obtain calibrated-looking categorical distributions over local judgments:
+whether a repair applies, which repair to attempt, how risky an automatic
+write is. In production data systems these local judgments are rarely the
+end product. A coordinator---often a short piece of deterministic
+business logic---compresses the joint of agent outputs into a final action
+that can be executed, deferred, or rejected~\citep{jevometry2026}.
+
+This compression is an information bottleneck. Classical decision theory
+and Dec-POMDP planning optimize rewards defined on beliefs or on
+prediction quality~\citep{lauri2020prediction,lauri2020decpomdp,oliehoek2016decpomdp}.
+Information-theoretic multi-agent sensing maximizes mutual information or
+related set functions, often with submodular greedy
+guarantees~\citep{krause2008near,nemhauser1978analysis,corah2021scalable,shi2026imas2}.
+Those lines of work choose \emph{what to observe} or \emph{who should
+observe}. They do not, by themselves, tell a practitioner which of two
+already-deployed coordination rules retains more sensitivity to the
+parameters the agents were designed to track.
+
+Fisher information provides a local, differentiable language for that
+sensitivity~\citep{fisher1925theory,amari2016information}. For a
+discrete model $P_\theta(Z)$ with score Jacobian $J_Z$, the Fisher matrix
+$I_Z=J_Z^\top \mathrm{diag}(P_\theta)^{-1} J_Z$ measures how strongly
+infinitesimal parameter moves change the outcome distribution. When a fixed
+map $f$ produces actions $A=f(Z)$, the data-processing inequality for Fisher
+information asserts $I_Z-I_A\succeq 0$ under standard regularity
+conditions~\citep{zamir1998fisherdpi,cover2006elements}. The scalar
+$\mathrm{tr}(I_Z-I_A)$ is then a comparable loss summary when $I_Z$ is held
+fixed.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item We cast multi-agent coordination-rule comparison as ranking
+  $\theta$-independent aggregation maps by Fisher information loss under a
+  shared declared joint (Section~\ref{sec:problem}).
+  \item We instantiate six pure rules in the Jevometry cleaning council and
+  provide a reproducible harness that sweeps a parameter grid, exports
+  CSV/JSON, and emits publication figures (Section~\ref{sec:method}).
+  \item Empirically, at the design centre the baseline rule loses about
+  $44\%$ of $\mathrm{tr}(I_Z)$; a quarantine-to-review softening cuts loss by
+  roughly a quarter relative to baseline; a binary gate loses more than
+  stricter mid-risk rejection (Section~\ref{sec:experiments}).
+  \item We discuss how this metric complements reward-centric Dec-POMDP
+  evaluation and what API constraints (deterministic maps only) imply for
+  future learned coordinators (Section~\ref{sec:discussion}).
+\end{enumerate}
+
+This manuscript is intended as a short journal / arXiv draft accompanying
+open-source experiments. It is not a claim about live cleaning quality; the
+agent families are analytic and illustrative.
+
+\section{Related work}
+\label{sec:related}
+
+\paragraph{Dec-POMDP active perception.}
+\citet{lauri2020prediction} reduce multi-agent active perception with
+prediction rewards to standard Dec-POMDP solvers via individual prediction
+actions, with decentralization-loss bounds. \citet{lauri2020decpomdp}
+optimize convex belief-dependent rewards (e.g., negative entropy) with policy
+graph improvement in discrete and continuous-state settings. Both lines
+typically treat the team as fixed and fold information objectives into
+rewards rather than post-hoc comparing deterministic coordinators.
+
+\paragraph{Information-driven multi-agent sensing.}
+Submodular sensor selection and multi-robot tracking maximize mutual
+information or related coverage objectives with greedy
+$(1-1/e)$ guarantees under monotonicity~\citep{krause2008near,corah2021scalable}.
+\citet{shi2026imas2} jointly select agents and synthesize sensing policies
+for mutual-information objectives in Dec-POMDPs. \citet{olkin2024vulcan}
+and \citet{molloy2023smoother} further connect planning to information and
+smoother entropy. Our setting is dual: agents and their local laws are
+\emph{fixed}; only the last-mile map to actions varies.
+
+\paragraph{Information geometry for agents.}
+Fisher--Rao geometry supplies local metrics on parametric families of
+distributions~\citep{amari2016information}. Jevometry operationalizes node-
+and system-level Fisher diagnostics for agent
+systems~\citep{jevometry2026}. We use its pushforward
+\texttt{information\_loss} primitive and do not modify the underlying
+DECLARED\_PRODUCT construction.
+
+\section{Problem formulation}
+\label{sec:problem}
+
+\subsection{Declared product joint}
+
+Let $\theta\in\Theta\subset\mathbb{R}^d$ parameterize a multi-agent system.
+Each agent $i\in\{1,\ldots,m\}$ emits a categorical distribution
+$P_\theta(Z_i)$ over a finite local alphabet $\mathcal{Z}_i$. A
+\emph{declared product joint} asserts conditional independence given
+$\theta$:
+\begin{equation}
+  P_\theta(Z=z)=\prod_{i=1}^{m} P_\theta(Z_i=z_i),
+  \qquad z=(z_1,\ldots,z_m)\in\mathcal{Z}=\prod_i\mathcal{Z}_i.
+\end{equation}
+In our cleaning example, $m=3$, $d=2$, and
+$\theta=(\mathrm{evidence},\mathrm{ambiguity})$ with coordinates in
+$[0,1]$. The declaration is an assumption of the model, not an empirical
+claim about live APIs.
+
+\subsection{Coordination as aggregation}
+
+\begin{definition}[Coordination rule]
+A coordination rule is a map $f:\mathcal{Z}\to\mathcal{A}$ into a finite
+action alphabet $\mathcal{A}$. We call $f$ \emph{pure} if it is a total
+function of the joint outcome alone (no hidden randomness) and
+\emph{$\theta$-independent} if $f$ does not depend on $\theta$.
+\end{definition}
+
+The induced action law is the pushforward
+\begin{equation}
+  P_\theta(A=a)=\sum_{z:f(z)=a} P_\theta(Z=z).
+\end{equation}
+If $J_Z(\theta)$ is the Jacobian of the joint probability vector with respect
+to $\theta$, the aggregate Jacobian $J_A$ is obtained by summing rows of
+$J_Z$ that share an action label.
+
+\subsection{Fisher information loss}
+
+\begin{definition}[Information loss of a rule]
+For a $\theta$-independent rule $f$, define
+\begin{align}
+  I_Z(\theta) &= J_Z(\theta)^\top \mathrm{diag}\bigl(P_\theta(Z)\bigr)^{-1} J_Z(\theta),\\
+  I_A(\theta) &= J_A(\theta)^\top \mathrm{diag}\bigl(P_\theta(A)\bigr)^{-1} J_A(\theta),\\
+  \Delta_f(\theta) &= I_Z(\theta)-I_A(\theta).
+\end{align}
+We report $\mathrm{tr}(I_Z)$, $\mathrm{tr}(I_A)$, and
+$\mathrm{tr}(\Delta_f)$ as scalar summaries, and we verify
+$\Delta_f\succeq 0$ numerically (PSD check) as a data-processing diagnostic.
+\end{definition}
+
+\begin{proposition}[DPI for fixed maps]
+Under standard positivity and differentiability conditions, any
+$\theta$-independent $f$ satisfies $\Delta_f(\theta)\succeq 0$. Equality
+holds when $f$ is injective on the support of $P_\theta$.
+\end{proposition}
+
+\begin{remark}
+Maps that depend on $\theta$ (soft policies, learned routers conditioned on
+parameters) fall outside this guarantee in the Jevometry implementation and
+are reported as unsupported. This paper therefore restricts attention to
+pure, fully covering, $\theta$-independent rules---the class that matches
+typical production if-then coordinators and the library's AggregationMap
+contract.
+\end{remark}
+
+\paragraph{Comparison principle.}
+Fix the agents and the joint construction. Rank rules by
+$\mathrm{tr}(\Delta_f)$ (lower is better) or equivalently by
+$\mathrm{tr}(I_A)$ (higher is better). Because $I_Z$ is shared, ranking by
+loss is identical to ranking by retained information.
+
+\section{Method and experimental design}
+\label{sec:method}
+
+\subsection{Three-agent cleaning council}
+
+We reuse the offline Jevometry tutorial
+\texttt{examples/three\_agent\_cleaning}~\citep{jevometry2026}. Three
+analytic softmax agents produce distributions for a single candidate repair
+of a noisy numeric field:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Agent & Primitive & Support \\
+\midrule
+applicability & Noul & $\{\mathrm{false},\mathrm{true}\}$ \\
+repair & Choice & $\{\mathrm{normalize},\mathrm{impute},\mathrm{quarantine}\}$ \\
+risk & Score & $\{0,1,2\}$ (low/med/high) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Local logits are affine in $(\theta-\theta_0)$ around the design centre
+$\theta_0=(0.7,0.3)$, and probabilities are obtained by softmax. The joint
+is the declared product (ConstructionMode.DECLARED\_PRODUCT). No live API is
+queried; no actual database write is performed.
+
+\subsection{Coordination rules}
+\label{sec:rules}
+
+We compare six rules, all pure and $\theta$-independent:
+
+\begin{description}
+  \item[baseline] Reject if inapplicable, quarantine, or high risk; auto-fix
+  if normalize and low risk; otherwise human review.
+  \item[stricter] As baseline, but medium risk also rejects.
+  \item[wider] As baseline rejects; low-risk normalize and impute become distinct
+  auto labels (\texttt{auto\_normalize}, \texttt{auto\_impute}).
+  \item[quarantine\_review] Quarantine routes to human review instead of reject;
+  reject only on inapplicable or high risk.
+  \item[coarse\_binary] Reject under baseline reject conditions; otherwise a
+  single \texttt{proceed} action (auto-fix and review collapsed).
+  \item[near\_identity] One action label per joint outcome tuple (18 labels):
+  Fisher retention upper bound under this alphabet.
+\end{description}
+
+\subsection{Harness}
+
+The script \texttt{paper\_experiments.py} builds nodes and joint once, evaluates
+$I_Z$, $I_A$, and $\Delta_f$ on an $8\times 8$ grid over
+$\mathrm{evidence}\in[0.2,0.9]$ and $\mathrm{ambiguity}\in[0.1,0.8]$, and
+additionally records the exact centre $\theta_0$. Outputs:
+
+\begin{itemize}
+  \item \texttt{papers/coord-fisher/data/rule\_loss\_grid.\{csv,json\}}
+  \item \texttt{papers/coord-fisher/data/center\_summary.json}
+  \item Figures~\ref{fig:center}--\ref{fig:masses} under
+  \texttt{papers/coord-fisher/figures/}
+\end{itemize}
+
+Library code under \texttt{src/jevometry} is unchanged; only example-level
+rules and scripts are extended.
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Centre-point ranking}
+
+Table~\ref{tab:center} reports traces at $\theta_0$. All rules return status
+\texttt{ok} with PSD loss matrices. The near-identity map loses nothing (up to
+numerical noise), confirming the implementation against the equality case of
+the DPI. Baseline loses $\mathrm{tr}(\Delta)\approx 3.03$ out of
+$\mathrm{tr}(I_Z)\approx 6.84$---about $44\%$. Wider slightly improves on
+baseline by preserving distinct auto paths. Stricter mid-risk rejection
+increases loss. Softening quarantine into review yields the largest practical
+gain among coarse three/four-action policies
+($\mathrm{tr}(\Delta)\approx 2.27$). Collapsing to a binary gate is worst
+among the listed rules ($\approx 3.71$).
+
+\begin{table}[t]
+\centering
+\caption{Fisher traces at centre $\theta_0=(0.7,0.3)$. $|A|$ is the number of
+actions with positive mass under the pushforward.}
+\label{tab:center}
+\begin{tabular}{lrrrrl}
+\toprule
+Rule & $\mathrm{tr}(I_Z)$ & $\mathrm{tr}(I_A)$ & $\mathrm{tr}(\Delta)$ & $|A|$ & Status \\
+\midrule
+near\_identity & 6.8418 & 6.8418 & 0.0000 & 18 & ok \\
+quarantine\_review & 6.8418 & 4.5764 & 2.2654 & 3 & ok \\
+wider & 6.8418 & 3.8285 & 3.0133 & 4 & ok \\
+baseline & 6.8418 & 3.8080 & 3.0338 & 3 & ok \\
+stricter & 6.8418 & 3.4198 & 3.4220 & 3 & ok \\
+coarse\_binary & 6.8418 & 3.1296 & 3.7122 & 2 & ok \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The core ordering highlighted in prior exploratory work remains:
+\begin{equation*}
+  \mathrm{near\text{-}identity}
+  \;\le\;
+  \mathrm{wider}
+  \;\le\;
+  \mathrm{baseline}
+  \;\le\;
+  \mathrm{stricter}
+\end{equation*}
+at the centre (numerical tolerances $10^{-9}$). Quarantine-to-review inserts
+\emph{below} wider on the loss axis, and coarse binary sits \emph{above}
+stricter---both are informative deviations from the original four-rule story.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/fig_loss_center.pdf}
+\caption{Information loss $\mathrm{tr}(I_Z-I_A)$ by rule at the design centre.}
+\label{fig:center}
+\end{figure}
+
+\subsection{Grid behaviour}
+
+Figure~\ref{fig:heat} shows loss heatmaps for five non-identity rules over the
+parameter grid. Absolute loss varies with $\theta$ because both $I_Z(\theta)$
+and the mass allocation across $f$-fibres change, but the qualitative ranking
+is stable in large regions of the domain: softer, finer action alphabets sit
+cooler (lower loss) than stricter or binary gates. Figure~\ref{fig:curves}
+slices loss against evidence at ambiguity nearest $0.3$; near-identity stays
+at zero, while coarse binary and stricter remain the most lossy.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_loss_heatmap.pdf}
+\caption{Loss heatmaps over evidence$\times$ambiguity for five coordination rules.}
+\label{fig:heat}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/fig_loss_curves.pdf}
+\caption{Loss versus evidence at fixed ambiguity near $0.3$.}
+\label{fig:curves}
+\end{figure}
+
+\subsection{Action masses}
+
+Figure~\ref{fig:masses} shows how probability mass is partitioned at the
+centre. Stricter reallocates medium-risk mass into reject. Wider splits
+auto-apply into normalize versus impute. Quarantine-to-review shrinks reject
+in favour of human review. Coarse binary folds auto-fix and review into
+\texttt{proceed}. These mass shifts are the mechanism behind Fisher loss:
+merging outcomes with dissimilar score rows collapses distinguishable
+parameter directions.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/fig_action_masses.pdf}
+\caption{Pushforward action probabilities at the centre for non-identity rules.}
+\label{fig:masses}
+\end{figure}
+
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{What ``half the Fisher'' means.}
+A $44\%$ drop in $\mathrm{tr}(I_Z)$ after baseline coordination does not mean
+the system is $44\%$ ``wrong.'' It means that, locally, infinitesimal changes
+in evidence and ambiguity move the final action distribution less than they
+move the joint of agent outputs. If a monitoring dashboard only watches
+action rates, it understates how sensitive the underlying council is. If a
+downstream estimator tries to invert actions for $\theta$, it faces a strictly
+harder problem than inverting $Z$.
+
+\paragraph{Design takeaway.}
+Among implementable three/four-action policies, routing quarantine to review
+retained the most Fisher in this model, beating both the historical baseline
+and the wider auto-impute split. Binary proceed/reject gates are convenient
+operationally but costly informationally. Practitioners can treat
+$\mathrm{tr}(\Delta_f)$ as a cheap offline score when debating rule changes
+before A/B tests.
+
+\paragraph{Relation to Dec-POMDP rewards.}
+Prediction rewards and negative-entropy objectives~\citep{lauri2020prediction,lauri2020decpomdp}
+optimize perception policies. Our metric does not replace them; it audits the
+\emph{last} deterministic compression after perception is fixed. In that sense
+it is complementary to IMAS$^2$-style joint selection~\citep{shi2026imas2}:
+selection expands who may observe; coordination ranking asks how much of that
+observation survives the action layer.
+
+\paragraph{API constraints.}
+Many agent platforms expose only sampled outcomes plus deterministic business
+rules. Soft, $\theta$-dependent routers would require either a declared
+conditional action model or a refusal of the DPI certificate---exactly the
+contract encoded by Jevometry's AggregationMap. Extending the present study to
+stochastic coordinators is future work and needs additional regularity.
+
+\section{Limitations}
+\label{sec:limitations}
+
+\begin{itemize}
+  \item Agent distributions are hand-specified analytic softmax families, not
+  fitted live decision models. Absolute numbers are illustrative.
+  \item Conditional independence is declared, not tested.
+  \item Trace summaries ignore anisotropic structure in $I_Z$ and $I_A$; full
+  matrix comparisons or parameter-wise CRLB-style reads would need an
+  observation likelihood contract this example does not provide.
+  \item Action alphabets differ across rules; $\mathrm{tr}(I_A)$ comparisons
+  remain meaningful as retained information about $\theta$, but
+  interpretations that treat $|A|$ as utility are out of scope.
+  \item No human or task reward study validates that lower Fisher loss improves
+  cleaning outcomes.
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We proposed ranking multi-agent coordination rules by Fisher information loss
+under a shared declared joint and demonstrated the approach on a reproducible
+three-agent cleaning council. Holding perception fixed, deterministic
+coordinators can discard on the order of half the joint Fisher trace; small
+rule edits (quarantine handling, auto-path splitting, risk thresholds) move
+that loss by amounts that are easy to measure offline. The accompanying
+harness and figures are intended as a template for auditing production
+if-then councils before changing live traffic.
+
+Future work includes (i) replacing analytic agents with TypeSafe / live
+decision-model Jacobians under the same AggregationMap interface, (ii)
+stochastic coordinators with explicit conditional action models, and (iii)
+coupling $\mathrm{tr}(\Delta_f)$ with task-level utilities in JAAMAS-style
+empirical studies.
+
+\section*{Reproducibility}
+
+From the repository root:
+\begin{verbatim}
+uv sync --locked
+uv pip install matplotlib   # paper figures
+uv run python examples/three_agent_cleaning/compare_rules.py
+uv run python examples/three_agent_cleaning/paper_experiments.py
+\end{verbatim}
+Artefacts land in \texttt{papers/coord-fisher/data} and
+\texttt{figures/}. This PDF was built with Tectonic from
+\texttt{papers/coord-fisher/main.tex}.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

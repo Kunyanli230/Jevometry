@@ -64,13 +64,18 @@ def main() -> None:
     near = by_name["near_identity"]
     print()
     print(
-        "Expectation check: "
+        "Core ordering check: "
         f"near_identity ({near:.4f}) ≤ wider ({wider:.4f}) ≤ baseline ({baseline:.4f}) "
         f"≤ stricter ({stricter:.4f})"
     )
     assert near <= wider + 1e-9
     assert wider <= baseline + 1e-9
     assert baseline <= stricter + 1e-9
+    if "coarse_binary" in by_name:
+        print(
+            f"Also: coarse_binary loss={by_name['coarse_binary']:.4f}; "
+            f"quarantine_review loss={by_name.get('quarantine_review', float('nan')):.4f}"
+        )
 
 
 if __name__ == "__main__":
