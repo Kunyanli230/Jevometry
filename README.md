@@ -49,6 +49,29 @@ command. The report and captures are generated locally; they are not tracked
 in Git. These figures describe the declared probability family at one point.
 They are not measured cleaning accuracy or empirical calibration.
 
+## 协调规则对比（示例扩展）
+
+在 [`examples/three_agent_cleaning/`](examples/three_agent_cleaning/) 中，三个智能体的概率族与
+`DECLARED_PRODUCT` 联合模型保持不变，只替换协调规则（`AggregationMap`），用
+`information_loss` 量化各规则在动作层之后还保留多少 Fisher 信息。
+
+**动机。** 基线协调规则把联合结果压成 `reject` / `auto_fix` / `human_review` 后，
+Fisher trace 从约 `6.84` 降到约 `3.03`——大约一半信息被规则丢掉。换更严 / 更宽 /
+近恒等规则，可以直接比较谁损失更少。
+
+**规则。** `baseline`（原规则）、`stricter`（中风险也拒绝）、`wider`（`impute`+低风险也可自动通过，且用
+`auto_normalize` / `auto_impute` 区分）、`near_identity`（每个联合结局一个标签，作为保留上界）。
+
+**运行与读表。**
+
+```bash
+uv sync --locked
+uv run python examples/three_agent_cleaning/compare_rules.py
+```
+
+表头：`rule | tr(I_Z) | tr(I_A) | tr(loss) | status`。`tr(I_Z)` 对所有规则相同；
+`tr(loss)` 越小表示动作层保留越多信息。预期：`near_identity` ≤ `wider` ≤ `baseline` ≤ `stricter`。
+
 ## What Jevometry computes
 
 - **Compare distributions.** Entropy, KL, Jensen–Shannon, Hellinger and
