@@ -1,0 +1,75 @@
+{
+  "center": {
+    "amount": 250.0,
+    "wait_hours": 8.0
+  },
+  "LOGIT_SCALE": 15.0,
+  "PROB_FLOOR": 1e-12,
+  "rule_order": [
+    "near_identity",
+    "baseline",
+    "stricter",
+    "coarse_binary"
+  ],
+  "tr_Iz": 0.1380154458554316,
+  "center_tr_Iz": 0.1380154458554316,
+  "tr_loss": {
+    "near_identity": -5.5402731014009277e-17,
+    "baseline": 0.08569361343820293,
+    "stricter": 0.08613524299231251,
+    "coarse_binary": 0.09048094282948274
+  },
+  "center_losses": {
+    "near_identity": {
+      "tr_Iz": 0.1380154458554316,
+      "tr_Ia": 0.13801544585543166,
+      "tr_loss": -5.5402731014009277e-17,
+      "status": "ok"
+    },
+    "baseline": {
+      "tr_Iz": 0.1380154458554316,
+      "tr_Ia": 0.05232183241722866,
+      "tr_loss": 0.08569361343820293,
+      "status": "ok"
+    },
+    "stricter": {
+      "tr_Iz": 0.1380154458554316,
+      "tr_Ia": 0.05188020286311908,
+      "tr_loss": 0.08613524299231251,
+      "status": "ok"
+    },
+    "coarse_binary": {
+      "tr_Iz": 0.1380154458554316,
+      "tr_Ia": 0.04753450302594886,
+      "tr_loss": 0.09048094282948274,
+      "status": "ok"
+    }
+  },
+  "center_order_holds": true,
+  "grid_ok_points": 9,
+  "grid_points": 9,
+  "action_mass_points": {
+    "(250,8)": {
+      "priority_queue_delta": 0.21876758706936994,
+      "standard_queue_delta": -0.21876758706936994,
+      "legacy_flip_present": true
+    },
+    "(600,2)": {
+      "priority_queue_delta": 3.950693522031883e-11,
+      "standard_queue_delta": -3.9506935220318195e-11,
+      "legacy_flip_present": false
+    },
+    "(600,8)": {
+      "priority_queue_delta": 2.5289049330197664e-10,
+      "standard_queue_delta": -2.5289049330199603e-10,
+      "legacy_flip_present": false
+    }
+  },
+  "legacy_flip_present": true,
+  "source_csv": "papers/typesafe-ticket/data/surrogate_rule_loss_grid.csv",
+  "action_mass_csv": "papers/typesafe-ticket/data/surrogate_action_masses.csv",
+  "figures": [
+    "figures/surrogate_rule_loss_center.pdf",
+    "figures/surrogate_rule_loss_heatmap.pdf"
+  ]
+}

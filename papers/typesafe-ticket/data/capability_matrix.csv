@@ -1,0 +1,11 @@
+source,capability,status,reason,analysis_object
+live,distribution_comparison,ok,,reported_distribution
+live,node_geometry,ok,,reported_distribution
+live,system_information,unsupported,no_joint_model,declared_system_model
+live,action_information,unsupported,deterministic_policy,declared_system_model
+live,inference,unsupported,no_likelihood_model,empirical_observation_model
+synthetic,distribution_comparison,ok,,reported_distribution
+synthetic,node_geometry,ok,,reported_distribution
+synthetic,system_information,ok,,declared_system_model
+synthetic,action_information,unsupported,deterministic_policy,declared_system_model
+synthetic,inference,unsupported,no_likelihood_model,empirical_observation_model

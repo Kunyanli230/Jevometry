@@ -24,8 +24,11 @@ from typing import Any
 import numpy as np
 from scipy.special import expit
 
+from itertools import product
+
 from jevometry.adapters.analytic import (
     AnalyticAdapter,
+    AnalyticJointModel,
     AnalyticNode,
     choice_question,
     noul_question,
@@ -33,7 +36,9 @@ from jevometry.adapters.analytic import (
 )
 from jevometry.experiments.renderer import StructuredRenderer
 from jevometry.schemas.common import RoutingSemantics
-from jevometry.schemas.system import CompositionMode
+from jevometry.schemas.joint import ConstructionMode
+from jevometry.systems.joint import product_joint_from_nodes, product_joint_jacobian
+from jevometry.systems.pushforward import AggregationMap
 
 ACTIONS = ("standard_queue", "priority_queue", "refund_review", "escalate")
 
@@ -51,15 +56,30 @@ def renderer() -> StructuredRenderer:
     return StructuredRenderer(STATE_TEMPLATE, static=STATIC_STATE, version="ticket-v1")
 
 
+LOGIT_SCALE = 15.0
+PROB_FLOOR = 1e-12  # twin-only; keep Fisher defined under sharp softmax
+
+
+
 def _logits(amount: float, wait: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Softmax/logit scores scaled by LOGIT_SCALE.
+
+    ParameterSpec uses raw amount/wait units, so unscaled slopes yield tiny Fisher
+    traces. Default LOGIT_SCALE=15 is the smallest value in {5,8,10,12,15,20} that
+    keeps centre order baseline≤stricter≤coarse_binary with tr(I_Z)≥0.02 while
+    maximizing finite (ok) grid cells. Scale 40 saturates high-amount cells; PROB_FLOOR keeps twin Fisher defined
+    without changing library zero-probability handling.
+    """
     scaled_amount = amount / 500.0
     scaled_wait = wait / 24.0
-    request = np.asarray(
+    request = LOGIT_SCALE * np.asarray(
         [0.9 * scaled_wait, 1.1 * scaled_amount - 0.4 * scaled_wait, 0.6 * scaled_amount],
         dtype=np.float64,
     )
-    escalation = np.asarray([1.6 * scaled_amount - 0.9 * scaled_wait - 0.6], dtype=np.float64)
-    impact = np.asarray(
+    escalation = LOGIT_SCALE * np.asarray(
+        [1.6 * scaled_amount - 0.9 * scaled_wait - 0.6], dtype=np.float64
+    )
+    impact = LOGIT_SCALE * np.asarray(
         [
             -0.4 * scaled_amount + 0.2 * scaled_wait + 0.2,
             0.4 * scaled_amount - 0.3 * scaled_wait,
@@ -68,6 +88,13 @@ def _logits(amount: float, wait: float) -> tuple[np.ndarray, np.ndarray, np.ndar
         dtype=np.float64,
     )
     return request, escalation, impact
+
+
+
+def _floor_probs(values: np.ndarray) -> np.ndarray:
+    """Clip node probabilities away from exact zero, then renormalize."""
+    clipped = np.maximum(np.asarray(values, dtype=np.float64), PROB_FLOOR)
+    return clipped / clipped.sum()
 
 
 def request_type_node() -> AnalyticNode:
@@ -81,7 +108,7 @@ def request_type_node() -> AnalyticNode:
         request, _, _ = _logits(float(theta["amount"]), float(theta["wait_hours"]))
         shifted = request - request.max()
         exponentials = np.exp(shifted)
-        return np.asarray(exponentials / exponentials.sum(), dtype=np.float64)
+        return _floor_probs(exponentials / exponentials.sum())
 
     def jacobian(theta: Mapping[str, float]) -> np.ndarray:
         amount = float(theta["amount"])
@@ -90,7 +117,7 @@ def request_type_node() -> AnalyticNode:
         shifted = request - request.max()
         q = np.exp(shifted) / np.exp(shifted).sum()
         # d logits / d theta
-        derivative = np.asarray(
+        derivative = LOGIT_SCALE * np.asarray(
             [
                 [0.0, 0.9 / 24.0],
                 [1.1 / 500.0, -0.4 / 24.0],
@@ -122,14 +149,14 @@ def needs_escalation_node() -> AnalyticNode:
 
     def probabilities(theta: Mapping[str, float]) -> np.ndarray:
         p = probability(theta)
-        return np.asarray([1.0 - p, p], dtype=np.float64)
+        return _floor_probs(np.asarray([1.0 - p, p], dtype=np.float64))
 
     def jacobian(theta: Mapping[str, float]) -> np.ndarray:
         p = probability(theta)
         derivative = p * (1.0 - p)
-        # d logit / d theta = (1.6/500, -0.9/24)
-        d_amount = derivative * (1.6 / 500.0)
-        d_wait = derivative * (-0.9 / 24.0)
+        # d logit / d theta scaled by LOGIT_SCALE
+        d_amount = derivative * LOGIT_SCALE * (1.6 / 500.0)
+        d_wait = derivative * LOGIT_SCALE * (-0.9 / 24.0)
         return np.asarray([[-d_amount, -d_wait], [d_amount, d_wait]], dtype=np.float64)
 
     return AnalyticNode(
@@ -153,7 +180,7 @@ def impact_node() -> AnalyticNode:
         _, _, impact = _logits(float(theta["amount"]), float(theta["wait_hours"]))
         shifted = impact - impact.max()
         exponentials = np.exp(shifted)
-        return np.asarray(exponentials / exponentials.sum(), dtype=np.float64)
+        return _floor_probs(exponentials / exponentials.sum())
 
     def jacobian(theta: Mapping[str, float]) -> np.ndarray:
         amount = float(theta["amount"])
@@ -161,7 +188,7 @@ def impact_node() -> AnalyticNode:
         _, _, impact = _logits(amount, wait)
         shifted = impact - impact.max()
         q = np.exp(shifted) / np.exp(shifted).sum()
-        derivative = np.asarray(
+        derivative = LOGIT_SCALE * np.asarray(
             [
                 [-0.4 / 500.0, 0.2 / 24.0],
                 [0.4 / 500.0, -0.3 / 24.0],
@@ -216,6 +243,177 @@ class TicketPolicy:
         return self.action(distribution)
 
 
+PARAMETERS = ("amount", "wait_hours")
+
+
+def outcome_to_surrogate_action(
+    outcome: tuple[str, ...], *, policy: "TicketPolicy | None" = None
+) -> str:
+    """Baseline hard-outcome map: matches ``TicketPolicy.action`` on one-hots."""
+    rule = policy or TicketPolicy()
+    request, escalation, impact = outcome
+    distribution = {
+        "request_type.billing": 1.0 if request == "billing" else 0.0,
+        "request_type.technical": 1.0 if request == "technical" else 0.0,
+        "request_type.refund": 1.0 if request == "refund" else 0.0,
+        "needs_escalation.false": 1.0 if escalation == "false" else 0.0,
+        "needs_escalation.true": 1.0 if escalation == "true" else 0.0,
+        "impact.0": 1.0 if impact == "0" else 0.0,
+        "impact.1": 1.0 if impact == "1" else 0.0,
+        "impact.2": 1.0 if impact == "2" else 0.0,
+    }
+    return rule.action(distribution)
+
+
+def rule_baseline(outcome: tuple[str, ...]) -> str:
+    return outcome_to_surrogate_action(outcome)
+
+
+def rule_stricter(outcome: tuple[str, ...]) -> str:
+    """Escalate on true; mid or high impact goes to priority; refund still reviewed."""
+    request, escalation, impact = outcome
+    if escalation == "true":
+        return "escalate"
+    if request == "refund":
+        return "refund_review"
+    if impact in ("1", "2"):
+        return "priority_queue"
+    return "standard_queue"
+
+
+def rule_coarse_binary(outcome: tuple[str, ...]) -> str:
+    """Binary gate: escalate vs proceed."""
+    _, escalation, _ = outcome
+    return "escalate" if escalation == "true" else "proceed"
+
+
+def rule_near_identity(outcome: tuple[str, ...]) -> str:
+    """Upper-bound reference: one label per joint outcome tuple."""
+    return "|".join(outcome)
+
+
+def build_declared_joint(
+    nodes: Mapping[str, AnalyticNode],
+) -> AnalyticJointModel:
+    """Shared DECLARED_PRODUCT joint (independent of aggregation rule)."""
+    node_order = list(nodes)
+    outcomes = {name: node.support for name, node in nodes.items()}
+    assumptions = [
+        "surrogate: nodes are conditionally independent given amount and wait_hours",
+        "surrogate AggregationMap is theta-independent; not production routing",
+    ]
+
+    def probabilities(theta: Mapping[str, float]):
+        joint = product_joint_from_nodes(
+            node_order,
+            outcomes,
+            {name: node.probabilities(theta) for name, node in nodes.items()},
+            assumptions=assumptions,
+            theta=theta,
+        )
+        # Floor joint atoms too: node PROB_FLOOR^3 can still fall below library zero_atol.
+        return joint.outcomes, _floor_probs(np.asarray(joint.probabilities, dtype=np.float64))
+
+    def jacobian(theta: Mapping[str, float]):
+        return product_joint_jacobian(
+            node_order,
+            outcomes,
+            {name: node.probabilities(theta) for name, node in nodes.items()},
+            {name: node.jacobian(theta) for name, node in nodes.items()},
+            PARAMETERS,
+        )
+
+    return AnalyticJointModel(
+        node_order=node_order,
+        parameter_names=list(PARAMETERS),
+        probability_function=probabilities,
+        jacobian_function=jacobian,
+        model_identity="ticket:declared-product-surrogate:v1",
+        construction_mode=ConstructionMode.DECLARED_PRODUCT,
+        assumptions=assumptions,
+    )
+
+
+def build_aggregation_map(
+    nodes: Mapping[str, AnalyticNode],
+    rule,
+    *,
+    name: str,
+    description: str,
+) -> AggregationMap:
+    node_order = list(nodes)
+    outcomes = {name_: node.support for name_, node in nodes.items()}
+    mapping = {
+        path: rule(path) for path in product(*(outcomes[name_] for name_ in node_order))
+    }
+    return AggregationMap(name=name, mapping=mapping, description=description)
+
+
+def build_rule_maps(
+    nodes: Mapping[str, AnalyticNode] | None = None,
+) -> list[tuple[str, AggregationMap]]:
+    """Four theta-independent surrogate coordinators for information-loss comparison."""
+    nodes = nodes or build_nodes()
+    return [
+        (
+            "baseline",
+            build_aggregation_map(
+                nodes,
+                rule_baseline,
+                name="surrogate_baseline",
+                description="Baseline hard-outcome TicketPolicy map onto ACTIONS",
+            ),
+        ),
+        (
+            "stricter",
+            build_aggregation_map(
+                nodes,
+                rule_stricter,
+                name="surrogate_stricter",
+                description="Stricter: mid-impact also priority_queue",
+            ),
+        ),
+        (
+            "coarse_binary",
+            build_aggregation_map(
+                nodes,
+                rule_coarse_binary,
+                name="surrogate_coarse_binary",
+                description="Binary escalate vs proceed",
+            ),
+        ),
+        (
+            "near_identity",
+            build_aggregation_map(
+                nodes,
+                rule_near_identity,
+                name="surrogate_near_identity",
+                description="Near-identity: one label per joint outcome",
+            ),
+        ),
+    ]
+
+
+def build_declared_product_surrogate(
+    nodes: Mapping[str, AnalyticNode],
+    *,
+    policy: "TicketPolicy | None" = None,
+) -> tuple[AnalyticJointModel, AggregationMap]:
+    """Declared product joint + baseline AggregationMap (adapter default)."""
+    del policy  # baseline hard map mirrors default TicketPolicy thresholds
+    joint = build_declared_joint(nodes)
+    aggregation = build_aggregation_map(
+        nodes,
+        rule_baseline,
+        name="surrogate_ticket_action",
+        description=(
+            "Declared-product surrogate coordinator onto ACTIONS; "
+            "not the production soft-probability TicketPolicy routing"
+        ),
+    )
+    return joint, aggregation
+
+
 def node_probability_map(
     nodes: Mapping[str, AnalyticNode], theta: Mapping[str, float]
 ) -> dict[str, float]:
@@ -229,24 +427,25 @@ def node_probability_map(
 
 
 class TicketSystemAdapter(AnalyticAdapter):
-    """Analytic ticket system with a declared deterministic policy."""
+    """Analytic ticket system with a declared product surrogate and soft policy."""
 
     def __init__(self, *, system_id: str, policy: TicketPolicy | None = None) -> None:
         nodes = build_nodes()
+        self.policy = policy or TicketPolicy()
+        joint, aggregation = build_declared_product_surrogate(nodes, policy=self.policy)
         super().__init__(
             system_id=system_id,
             nodes=nodes,
+            joint_model=joint,
             renderer=renderer(),
             routing_semantics=RoutingSemantics.DETERMINISTIC_POLICY,
             description=(
-                "Synthetic ticket triage with a deterministic policy; probabilities are "
-                "reported distributions, not action frequencies"
+                "Synthetic ticket triage: reported node distributions with a deterministic "
+                "soft policy; DECLARED_PRODUCT joint + AggregationMap are a surrogate for "
+                "information-loss analysis, not production routing frequencies"
             ),
         )
-        self.policy = policy or TicketPolicy()
-        self._system = self._system.model_copy(
-            update={"composition_mode": CompositionMode.NODE_ONLY}
-        )
+        self.surrogate_aggregation = aggregation
 
     def action(self, theta: Mapping[str, float]) -> str:
         return self.policy.action(node_probability_map(self.nodes, theta))
