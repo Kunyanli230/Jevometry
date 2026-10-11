@@ -1,0 +1,86 @@
+{
+  "branch": "paper/coord-fisher-info-loss",
+  "n_rules": 7,
+  "center_tr_loss_ascending": [
+    {
+      "rule": "near_identity",
+      "tr_I_Z": 6.841796379900002,
+      "tr_I_A": 6.8417963799000034,
+      "tr_loss": -8.881784197001252e-16,
+      "n_actions": 18,
+      "status": "ok"
+    },
+    {
+      "rule": "quarantine_wider",
+      "tr_I_Z": 6.841796379900002,
+      "tr_I_A": 4.681592242840718,
+      "tr_loss": 2.1602041370592833,
+      "n_actions": 4,
+      "status": "ok"
+    },
+    {
+      "rule": "quarantine_review",
+      "tr_I_Z": 6.841796379900002,
+      "tr_I_A": 4.576421535014275,
+      "tr_loss": 2.2653748448857267,
+      "n_actions": 3,
+      "status": "ok"
+    },
+    {
+      "rule": "wider",
+      "tr_I_Z": 6.841796379900002,
+      "tr_I_A": 3.8285205232740642,
+      "tr_loss": 3.013275856625938,
+      "n_actions": 4,
+      "status": "ok"
+    },
+    {
+      "rule": "baseline",
+      "tr_I_Z": 6.841796379900002,
+      "tr_I_A": 3.8080337021788004,
+      "tr_loss": 3.0337626777212012,
+      "n_actions": 3,
+      "status": "ok"
+    },
+    {
+      "rule": "stricter",
+      "tr_I_Z": 6.841796379900002,
+      "tr_I_A": 3.4197983975954114,
+      "tr_loss": 3.4219979823045907,
+      "n_actions": 3,
+      "status": "ok"
+    },
+    {
+      "rule": "coarse_binary",
+      "tr_I_Z": 6.841796379900002,
+      "tr_I_A": 3.12963920863276,
+      "tr_loss": 3.712157171267242,
+      "n_actions": 2,
+      "status": "ok"
+    }
+  ],
+  "core_order": {
+    "hold": 64,
+    "total": 64,
+    "ratio": 1.0,
+    "predicate": "near_identity <= wider <= baseline <= stricter"
+  },
+  "quarantine_wider": {
+    "hold_ratio": 1.0,
+    "hold": 65,
+    "grid_points": 65,
+    "predicate": "quarantine_wider <= quarantine_review"
+  },
+  "artifacts": {
+    "center_loss_anisotropy_csv": "data/center_loss_anisotropy.csv",
+    "rule_loss_anisotropy_grid_csv": "data/rule_loss_anisotropy_grid.csv",
+    "fig_frac_loss_heatmap": "figures/fig_frac_loss_heatmap.png",
+    "quarantine_action_mass_compare_csv": "data/quarantine_action_mass_compare.csv",
+    "quarantine_action_mass_compare_json": "data/quarantine_action_mass_compare.json",
+    "quarantine_wider_vs_review_json": "data/quarantine_wider_vs_review.json",
+    "center_summary_json": "data/center_summary.json",
+    "rule_loss_grid_csv": "data/rule_loss_grid.csv",
+    "fig_loss_center": "figures/fig_loss_center.png",
+    "fig_action_masses": "figures/fig_action_masses.png"
+  }
+}
