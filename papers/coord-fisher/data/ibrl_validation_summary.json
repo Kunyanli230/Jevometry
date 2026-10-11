@@ -1,0 +1,135 @@
+{
+  "dataset": "intel_berkeley_lab_subsample",
+  "source": "https://db.csail.mit.edu/labdata/labdata.html",
+  "subsample": "examples/unit_disk_sensors/data/ibrl_subsample.tsv",
+  "center": {
+    "temperature": 0.5346981939163499,
+    "humidity": 0.41017181644490297
+  },
+  "geometry": {
+    "n_motes": 12,
+    "mote_ids": [
+      4,
+      11,
+      16,
+      18,
+      20,
+      26,
+      34,
+      39,
+      42,
+      47,
+      50,
+      53
+    ],
+    "n_edges": 6,
+    "radius_norm": 0.35,
+    "n_samples": 480
+  },
+  "parameters": [
+    "temperature",
+    "humidity"
+  ],
+  "core_rules": [
+    "near_identity",
+    "wider",
+    "baseline",
+    "stricter"
+  ],
+  "core_order": "near_identity \u2264 wider \u2264 baseline \u2264 stricter",
+  "core_order_holds": true,
+  "fisher_approximation_ok": true,
+  "center_tr_loss_ascending": [
+    {
+      "rule": "near_identity",
+      "tr_loss": 0.0
+    },
+    {
+      "rule": "wider",
+      "tr_loss": 2.783767647910989
+    },
+    {
+      "rule": "baseline",
+      "tr_loss": 2.7851075641571743
+    },
+    {
+      "rule": "coarse_binary",
+      "tr_loss": 2.7958155230992254
+    },
+    {
+      "rule": "quarantine_wider",
+      "tr_loss": 3.0415307857560534
+    },
+    {
+      "rule": "quarantine_review",
+      "tr_loss": 3.1011892603715046
+    },
+    {
+      "rule": "stricter",
+      "tr_loss": 3.47410347740803
+    }
+  ],
+  "ibrl_center_losses": {
+    "baseline": 2.7851075641571743,
+    "stricter": 3.47410347740803,
+    "wider": 2.783767647910989,
+    "quarantine_review": 3.1011892603715046,
+    "quarantine_wider": 3.0415307857560534,
+    "coarse_binary": 2.7958155230992254,
+    "near_identity": 0.0
+  },
+  "vs_unit_disk_center": [
+    {
+      "rule": "baseline",
+      "ibrl_tr_loss": 2.7851075641571743,
+      "unit_disk_tr_loss": 1.83272756850074,
+      "abs_diff": 0.9523799956564343
+    },
+    {
+      "rule": "stricter",
+      "ibrl_tr_loss": 3.47410347740803,
+      "unit_disk_tr_loss": 2.833293193786017,
+      "abs_diff": 0.6408102836220131
+    },
+    {
+      "rule": "wider",
+      "ibrl_tr_loss": 2.783767647910989,
+      "unit_disk_tr_loss": 1.8195238073042825,
+      "abs_diff": 0.9642438406067064
+    },
+    {
+      "rule": "quarantine_review",
+      "ibrl_tr_loss": 3.1011892603715046,
+      "unit_disk_tr_loss": 1.8749102993656879,
+      "abs_diff": 1.2262789610058167
+    },
+    {
+      "rule": "quarantine_wider",
+      "ibrl_tr_loss": 3.0415307857560534,
+      "unit_disk_tr_loss": 1.7843922509324819,
+      "abs_diff": 1.2571385348235715
+    },
+    {
+      "rule": "coarse_binary",
+      "ibrl_tr_loss": 2.7958155230992254,
+      "unit_disk_tr_loss": 2.2460792447924542,
+      "abs_diff": 0.5497362783067712
+    },
+    {
+      "rule": "near_identity",
+      "ibrl_tr_loss": 0.0,
+      "unit_disk_tr_loss": 8.881784197001252e-16,
+      "abs_diff": 8.881784197001252e-16
+    }
+  ],
+  "unit_disk_order_exact_match": false,
+  "artifacts": {
+    "csv": "papers/coord-fisher/data/ibrl_center_loss.csv",
+    "json": "papers/coord-fisher/data/ibrl_validation_summary.json"
+  },
+  "notes": [
+    "\u03b8 = MinMax-scaled temperature/humidity; centre = feature means.",
+    "12 farthest-point motes from IBRL; labels from voltage + unit-disk neighbor disagreement.",
+    "Same seven AggregationMaps as unit_disk_sensors (quarantine = isolate safety valve)."
+  ]
+}

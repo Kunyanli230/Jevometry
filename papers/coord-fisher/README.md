@@ -5,10 +5,10 @@ deterministic multi-agent coordination rules by Fisher information loss after
 the action layer.
 
 **Primary framing:** decentralized sensor-agent networks (AggregationMap as
-exchange + quarantine; rank by `tr(Δ)=tr(I_Z−I_A)`). Planned main experiment:
-synthetic unit-disk 2D field. Planned control: IBRL motes 9–16. **No fabricated
-unit-disk/IBRL numbers** — cleaning-council tables/figures remain the current
-analytic illustration / proof of concept.
+exchange + quarantine; rank by `tr(Δ)=tr(I_Z−I_A)`). Main synthetic twin:
+unit-disk 2D field (`examples/unit_disk_sensors/`). Real-data对照: IBRL 12-mote
+subsample (same package). Cleaning-council tables/figures remain the analytic
+illustration / proof of concept in `main.tex` until prose is updated.
 
 > **NOTE:** `main-zh.tex` / `main-zh.pdf` is the Simplified Chinese 1:1 counterpart of `main.tex` (same sections, equations, tables, figures, citations; prose translated). Build with `lualatex` + `bibtex` (Noto Serif CJK SC / Noto Sans Mono CJK SC via fontspec).
 
@@ -130,7 +130,26 @@ uv run pytest tests/unit/test_unit_disk_artifacts.py -q
 | `data/unit_disk_center_loss.csv` | Per-rule centre tr(I_Z), tr(I_A), tr_loss |
 | `data/unit_disk_validation_summary.json` | Order / Fisher-ok / vs cleaning centre |
 
-IBRL (Intel Berkeley Lab) 9–16 mote subsample is **phase 2** (not committed yet).
+
+## IBRL real-data对照 (phase 2)
+
+12-mote farthest-point subsample of Intel Berkeley Lab
+([source](https://db.csail.mit.edu/labdata/labdata.html); files under
+`examples/unit_disk_sensors/data/` with `SOURCE.txt` attribution).
+θ = MinMax temperature/humidity; Iris-style logistic role agents; same seven
+AggregationMaps as the unit-disk twin.
+
+```bash
+uv run python examples/unit_disk_sensors/ibrl_experiments.py
+uv run pytest tests/unit/test_ibrl_artifacts.py -q
+```
+
+| Path | Role |
+| --- | --- |
+| `examples/unit_disk_sensors/ibrl_system.py` | Load subsample, fit agents, RULE_SPECS |
+| `examples/unit_disk_sensors/ibrl_experiments.py` | Centre `information_loss` export |
+| `data/ibrl_center_loss.csv` | Per-rule centre tr loss |
+| `data/ibrl_validation_summary.json` | fisher_ok, mote ids, vs unit-disk |
 
 ## Iris real-data check
 
