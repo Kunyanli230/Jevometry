@@ -56,15 +56,20 @@ def renderer() -> StructuredRenderer:
     return StructuredRenderer(STATE_TEMPLATE, static=STATIC_STATE, version="ticket-v1")
 
 
+LOGIT_SCALE = 40.0
+
+
 def _logits(amount: float, wait: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     scaled_amount = amount / 500.0
     scaled_wait = wait / 24.0
-    request = np.asarray(
+    request = LOGIT_SCALE * np.asarray(
         [0.9 * scaled_wait, 1.1 * scaled_amount - 0.4 * scaled_wait, 0.6 * scaled_amount],
         dtype=np.float64,
     )
-    escalation = np.asarray([1.6 * scaled_amount - 0.9 * scaled_wait - 0.6], dtype=np.float64)
-    impact = np.asarray(
+    escalation = LOGIT_SCALE * np.asarray(
+        [1.6 * scaled_amount - 0.9 * scaled_wait - 0.6], dtype=np.float64
+    )
+    impact = LOGIT_SCALE * np.asarray(
         [
             -0.4 * scaled_amount + 0.2 * scaled_wait + 0.2,
             0.4 * scaled_amount - 0.3 * scaled_wait,
@@ -95,7 +100,7 @@ def request_type_node() -> AnalyticNode:
         shifted = request - request.max()
         q = np.exp(shifted) / np.exp(shifted).sum()
         # d logits / d theta
-        derivative = np.asarray(
+        derivative = LOGIT_SCALE * np.asarray(
             [
                 [0.0, 0.9 / 24.0],
                 [1.1 / 500.0, -0.4 / 24.0],
@@ -132,9 +137,9 @@ def needs_escalation_node() -> AnalyticNode:
     def jacobian(theta: Mapping[str, float]) -> np.ndarray:
         p = probability(theta)
         derivative = p * (1.0 - p)
-        # d logit / d theta = (1.6/500, -0.9/24)
-        d_amount = derivative * (1.6 / 500.0)
-        d_wait = derivative * (-0.9 / 24.0)
+        # d logit / d theta scaled by LOGIT_SCALE
+        d_amount = derivative * LOGIT_SCALE * (1.6 / 500.0)
+        d_wait = derivative * LOGIT_SCALE * (-0.9 / 24.0)
         return np.asarray([[-d_amount, -d_wait], [d_amount, d_wait]], dtype=np.float64)
 
     return AnalyticNode(
@@ -166,7 +171,7 @@ def impact_node() -> AnalyticNode:
         _, _, impact = _logits(amount, wait)
         shifted = impact - impact.max()
         q = np.exp(shifted) / np.exp(shifted).sum()
-        derivative = np.asarray(
+        derivative = LOGIT_SCALE * np.asarray(
             [
                 [-0.4 / 500.0, 0.2 / 24.0],
                 [0.4 / 500.0, -0.3 / 24.0],
