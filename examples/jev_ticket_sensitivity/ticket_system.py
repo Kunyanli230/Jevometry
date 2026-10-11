@@ -57,6 +57,7 @@ def renderer() -> StructuredRenderer:
 
 
 LOGIT_SCALE = 15.0
+PROB_FLOOR = 1e-12  # twin-only; keep Fisher defined under sharp softmax
 
 
 
@@ -66,8 +67,8 @@ def _logits(amount: float, wait: float) -> tuple[np.ndarray, np.ndarray, np.ndar
     ParameterSpec uses raw amount/wait units, so unscaled slopes yield tiny Fisher
     traces. Default LOGIT_SCALE=15 is the smallest value in {5,8,10,12,15,20} that
     keeps centre order baseline≤stricter≤coarse_binary with tr(I_Z)≥0.02 while
-    maximizing finite (ok) grid cells. Scale 40 saturates high-amount cells
-    (zero_probability_outcome / undefined Fisher).
+    maximizing finite (ok) grid cells. Scale 40 saturates high-amount cells; PROB_FLOOR keeps twin Fisher defined
+    without changing library zero-probability handling.
     """
     scaled_amount = amount / 500.0
     scaled_wait = wait / 24.0
@@ -89,6 +90,13 @@ def _logits(amount: float, wait: float) -> tuple[np.ndarray, np.ndarray, np.ndar
     return request, escalation, impact
 
 
+
+def _floor_probs(values: np.ndarray) -> np.ndarray:
+    """Clip node probabilities away from exact zero, then renormalize."""
+    clipped = np.maximum(np.asarray(values, dtype=np.float64), PROB_FLOOR)
+    return clipped / clipped.sum()
+
+
 def request_type_node() -> AnalyticNode:
     question = choice_question(
         "request_type",
@@ -100,7 +108,7 @@ def request_type_node() -> AnalyticNode:
         request, _, _ = _logits(float(theta["amount"]), float(theta["wait_hours"]))
         shifted = request - request.max()
         exponentials = np.exp(shifted)
-        return np.asarray(exponentials / exponentials.sum(), dtype=np.float64)
+        return _floor_probs(exponentials / exponentials.sum())
 
     def jacobian(theta: Mapping[str, float]) -> np.ndarray:
         amount = float(theta["amount"])
@@ -141,7 +149,7 @@ def needs_escalation_node() -> AnalyticNode:
 
     def probabilities(theta: Mapping[str, float]) -> np.ndarray:
         p = probability(theta)
-        return np.asarray([1.0 - p, p], dtype=np.float64)
+        return _floor_probs(np.asarray([1.0 - p, p], dtype=np.float64))
 
     def jacobian(theta: Mapping[str, float]) -> np.ndarray:
         p = probability(theta)
@@ -172,7 +180,7 @@ def impact_node() -> AnalyticNode:
         _, _, impact = _logits(float(theta["amount"]), float(theta["wait_hours"]))
         shifted = impact - impact.max()
         exponentials = np.exp(shifted)
-        return np.asarray(exponentials / exponentials.sum(), dtype=np.float64)
+        return _floor_probs(exponentials / exponentials.sum())
 
     def jacobian(theta: Mapping[str, float]) -> np.ndarray:
         amount = float(theta["amount"])
@@ -303,7 +311,8 @@ def build_declared_joint(
             assumptions=assumptions,
             theta=theta,
         )
-        return joint.outcomes, np.asarray(joint.probabilities, dtype=np.float64)
+        # Floor joint atoms too: node PROB_FLOOR^3 can still fall below library zero_atol.
+        return joint.outcomes, _floor_probs(np.asarray(joint.probabilities, dtype=np.float64))
 
     def jacobian(theta: Mapping[str, float]):
         return product_joint_jacobian(
