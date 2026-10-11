@@ -1,0 +1,713 @@
+{
+  "beds": {
+    "unit_disk": "papers/coord-fisher/data/unit_disk_rule_utility.csv",
+    "ibrl": "papers/coord-fisher/data/ibrl_rule_utility.csv",
+    "imas2": {
+      "file": "papers/coord-fisher/data/imas2_rule_comparison.csv",
+      "slice": "fixed_orientation|stochastic|small"
+    }
+  },
+  "utility_notes": {
+    "unit_disk_ibrl": "y_share bit under declared joint at \u03b8_centre; exact Bayes H/acc. Ceiling H=0/acc=1 possible when A determines y.",
+    "imas2": "adversary-type \u03c4 via HMM filter on fused categories (existing evaluator)."
+  },
+  "protocol": {
+    "recalibration": false,
+    "n_perm": 5000,
+    "seed": 0,
+    "eps_H": "max(0.05, 0.1\u00b7H_baseline)",
+    "tongyong_rhos": [
+      "rho_srcDI_tgtDI",
+      "rho_srcDI_tgtH",
+      "rho_srcDI_neg_tgtAcc"
+    ]
+  },
+  "bed_tables": {
+    "unit_disk": {
+      "baseline": {
+        "tr_delta_I": 1.83272756850074,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999999
+      },
+      "stricter": {
+        "tr_delta_I": 2.833293193786017,
+        "cond_entropy": 0.5220659452100898,
+        "accuracy": 0.8406249999999997
+      },
+      "wider": {
+        "tr_delta_I": 1.8195238073042825,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      },
+      "quarantine_review": {
+        "tr_delta_I": 1.8749102993656879,
+        "cond_entropy": 0.31285796664325793,
+        "accuracy": 0.9099999999999998
+      },
+      "quarantine_wider": {
+        "tr_delta_I": 1.7843922509324819,
+        "cond_entropy": 0.23526775184125878,
+        "accuracy": 0.9099999999999997
+      },
+      "coarse_binary": {
+        "tr_delta_I": 2.2460792447924542,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999999
+      },
+      "near_identity": {
+        "tr_delta_I": 8.881784197001252e-16,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      }
+    },
+    "ibrl": {
+      "baseline": {
+        "tr_delta_I": 2.7851075641571743,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      },
+      "stricter": {
+        "tr_delta_I": 3.47410347740803,
+        "cond_entropy": 0.43370470321641863,
+        "accuracy": 0.9066394051352772
+      },
+      "wider": {
+        "tr_delta_I": 2.783767647910989,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      },
+      "quarantine_review": {
+        "tr_delta_I": 3.1011892603715046,
+        "cond_entropy": 0.22576427585805248,
+        "accuracy": 0.9072771390772587
+      },
+      "quarantine_wider": {
+        "tr_delta_I": 3.0415307857560534,
+        "cond_entropy": 0.18608187920498928,
+        "accuracy": 0.9072771390772587
+      },
+      "coarse_binary": {
+        "tr_delta_I": 2.7958155230992254,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999999
+      },
+      "near_identity": {
+        "tr_delta_I": 0.0,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      }
+    },
+    "imas2": {
+      "baseline": {
+        "tr_delta_I": 118.56963636026789,
+        "cond_entropy": 0.6753434374762511,
+        "accuracy": 0.77
+      },
+      "stricter": {
+        "tr_delta_I": 138.69667784908177,
+        "cond_entropy": 0.6873332553630841,
+        "accuracy": 0.768
+      },
+      "wider": {
+        "tr_delta_I": 115.37001172107968,
+        "cond_entropy": 0.6760595068505738,
+        "accuracy": 0.768
+      },
+      "quarantine_review": {
+        "tr_delta_I": 140.94023039635178,
+        "cond_entropy": 0.8092372390150119,
+        "accuracy": 0.736
+      },
+      "quarantine_wider": {
+        "tr_delta_I": 137.74060575716354,
+        "cond_entropy": 0.8088327484571671,
+        "accuracy": 0.736
+      },
+      "coarse_binary": {
+        "tr_delta_I": 152.66980389825096,
+        "cond_entropy": 0.8826643492557373,
+        "accuracy": 0.608
+      },
+      "near_identity": {
+        "tr_delta_I": -9.55507374611475e-15,
+        "cond_entropy": 0.5425717463550052,
+        "accuracy": 0.824
+      }
+    }
+  },
+  "transfers": [
+    {
+      "source": "unit_disk",
+      "target": "imas2",
+      "rho_srcDI_tgtDI": 0.7857142857142859,
+      "rho_srcDI_tgtH": 0.5714285714285715,
+      "rho_srcDI_tgtAcc": -0.4546206046583175,
+      "rho_srcDI_neg_tgtAcc": 0.4546206046583175,
+      "perm_p_DI": 0.04519096180763847,
+      "perm_p_H": 0.19636072785442912,
+      "fisher_pick_ex_near": "quarantine_wider",
+      "fisher_pick_with_near": "near_identity",
+      "entropy_pick_ex_near_on_target": "baseline",
+      "target_metrics": {
+        "fisher_pick": {
+          "rule": "quarantine_wider",
+          "accuracy": 0.736,
+          "cond_entropy": 0.8088327484571671,
+          "tr_delta_I": 137.74060575716354
+        },
+        "baseline": {
+          "accuracy": 0.77,
+          "cond_entropy": 0.6753434374762511,
+          "tr_delta_I": 118.56963636026789
+        },
+        "quarantine": {
+          "accuracy": {
+            "quarantine_wider": 0.736,
+            "quarantine_review": 0.736
+          },
+          "cond_entropy": {
+            "quarantine_wider": 0.8088327484571671,
+            "quarantine_review": 0.8092372390150119
+          }
+        },
+        "entropy_pick": {
+          "rule": "baseline",
+          "accuracy": 0.77,
+          "cond_entropy": 0.6753434374762511
+        },
+        "near_identity": {
+          "accuracy": 0.824,
+          "cond_entropy": 0.5425717463550052
+        }
+      },
+      "eps_H": 0.06753434374762511,
+      "delta_H_baseline_minus_pick": -0.133489310980916,
+      "heath_tongyong": {
+        "pass": false,
+        "criterion": "\u03c1(src\u0394I,tgt\u0394I)\u22650.5 AND \u03c1(src\u0394I,tgtH)\u22650.5 AND \u03c1(src\u0394I,\u2212tgtAcc)\u22650.5",
+        "flags": {
+          "rho_srcDI_tgtDI": true,
+          "rho_srcDI_tgtH": true,
+          "rho_srcDI_tgtAcc": false,
+          "rho_srcDI_neg_tgtAcc": false
+        },
+        "values": {
+          "rho_srcDI_tgtDI": 0.7857142857142859,
+          "rho_srcDI_tgtH": 0.5714285714285715,
+          "rho_srcDI_tgtAcc": -0.4546206046583175,
+          "rho_srcDI_neg_tgtAcc": 0.4546206046583175
+        }
+      },
+      "heath_zhengxiang": {
+        "pass": false,
+        "criterion": "fisher_pick_ex_near acc > baseline AND quarantine bottom-half by acc and by H",
+        "pick_acc_gt_baseline": false,
+        "quarantine_worst_acc": true,
+        "quarantine_worst_H": true
+      },
+      "S1": {
+        "pass": false,
+        "rho_DI": 0.7857142857142859,
+        "p_DI": 0.04519096180763847,
+        "rho_H": 0.5714285714285715,
+        "p_H": 0.19636072785442912
+      },
+      "S2": {
+        "pass": false,
+        "no_contradiction": false,
+        "delta_H_ok": false,
+        "eps_H": 0.06753434374762511
+      }
+    },
+    {
+      "source": "imas2",
+      "target": "unit_disk",
+      "rho_srcDI_tgtDI": 0.7857142857142859,
+      "rho_srcDI_tgtH": 0.4531634835874829,
+      "rho_srcDI_tgtAcc": -0.09092412093166351,
+      "rho_srcDI_neg_tgtAcc": 0.09092412093166351,
+      "perm_p_DI": 0.04079184163167367,
+      "perm_p_H": 0.31593681263747253,
+      "fisher_pick_ex_near": "wider",
+      "fisher_pick_with_near": "near_identity",
+      "entropy_pick_ex_near_on_target": "wider",
+      "target_metrics": {
+        "fisher_pick": {
+          "rule": "wider",
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0,
+          "tr_delta_I": 1.8195238073042825
+        },
+        "baseline": {
+          "accuracy": 0.9999999999999999,
+          "cond_entropy": 0.0,
+          "tr_delta_I": 1.83272756850074
+        },
+        "quarantine": {
+          "accuracy": {
+            "quarantine_wider": 0.9099999999999997,
+            "quarantine_review": 0.9099999999999998
+          },
+          "cond_entropy": {
+            "quarantine_wider": 0.23526775184125878,
+            "quarantine_review": 0.31285796664325793
+          }
+        },
+        "entropy_pick": {
+          "rule": "wider",
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0
+        },
+        "near_identity": {
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0
+        }
+      },
+      "eps_H": 0.05,
+      "delta_H_baseline_minus_pick": 0.0,
+      "heath_tongyong": {
+        "pass": false,
+        "criterion": "\u03c1(src\u0394I,tgt\u0394I)\u22650.5 AND \u03c1(src\u0394I,tgtH)\u22650.5 AND \u03c1(src\u0394I,\u2212tgtAcc)\u22650.5",
+        "flags": {
+          "rho_srcDI_tgtDI": true,
+          "rho_srcDI_tgtH": false,
+          "rho_srcDI_tgtAcc": false,
+          "rho_srcDI_neg_tgtAcc": false
+        },
+        "values": {
+          "rho_srcDI_tgtDI": 0.7857142857142859,
+          "rho_srcDI_tgtH": 0.4531634835874829,
+          "rho_srcDI_tgtAcc": -0.09092412093166351,
+          "rho_srcDI_neg_tgtAcc": 0.09092412093166351
+        }
+      },
+      "heath_zhengxiang": {
+        "pass": false,
+        "criterion": "fisher_pick_ex_near acc > baseline AND quarantine bottom-half by acc and by H",
+        "pick_acc_gt_baseline": false,
+        "quarantine_worst_acc": true,
+        "quarantine_worst_H": true
+      },
+      "S1": {
+        "pass": false,
+        "rho_DI": 0.7857142857142859,
+        "p_DI": 0.04079184163167367,
+        "rho_H": 0.4531634835874829,
+        "p_H": 0.31593681263747253
+      },
+      "S2": {
+        "pass": true,
+        "no_contradiction": true,
+        "delta_H_ok": true,
+        "eps_H": 0.05
+      }
+    },
+    {
+      "source": "imas2",
+      "target": "ibrl",
+      "rho_srcDI_tgtDI": 0.7500000000000002,
+      "rho_srcDI_tgtH": 0.4531634835874829,
+      "rho_srcDI_tgtAcc": -0.11227217828476797,
+      "rho_srcDI_neg_tgtAcc": 0.11227217828476797,
+      "perm_p_DI": 0.0651869626074785,
+      "perm_p_H": 0.3171365726854629,
+      "fisher_pick_ex_near": "wider",
+      "fisher_pick_with_near": "near_identity",
+      "entropy_pick_ex_near_on_target": "wider",
+      "target_metrics": {
+        "fisher_pick": {
+          "rule": "wider",
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0,
+          "tr_delta_I": 2.783767647910989
+        },
+        "baseline": {
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0,
+          "tr_delta_I": 2.7851075641571743
+        },
+        "quarantine": {
+          "accuracy": {
+            "quarantine_wider": 0.9072771390772587,
+            "quarantine_review": 0.9072771390772587
+          },
+          "cond_entropy": {
+            "quarantine_wider": 0.18608187920498928,
+            "quarantine_review": 0.22576427585805248
+          }
+        },
+        "entropy_pick": {
+          "rule": "wider",
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0
+        },
+        "near_identity": {
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0
+        }
+      },
+      "eps_H": 0.05,
+      "delta_H_baseline_minus_pick": 0.0,
+      "heath_tongyong": {
+        "pass": false,
+        "criterion": "\u03c1(src\u0394I,tgt\u0394I)\u22650.5 AND \u03c1(src\u0394I,tgtH)\u22650.5 AND \u03c1(src\u0394I,\u2212tgtAcc)\u22650.5",
+        "flags": {
+          "rho_srcDI_tgtDI": true,
+          "rho_srcDI_tgtH": false,
+          "rho_srcDI_tgtAcc": false,
+          "rho_srcDI_neg_tgtAcc": false
+        },
+        "values": {
+          "rho_srcDI_tgtDI": 0.7500000000000002,
+          "rho_srcDI_tgtH": 0.4531634835874829,
+          "rho_srcDI_tgtAcc": -0.11227217828476797,
+          "rho_srcDI_neg_tgtAcc": 0.11227217828476797
+        }
+      },
+      "heath_zhengxiang": {
+        "pass": false,
+        "criterion": "fisher_pick_ex_near acc > baseline AND quarantine bottom-half by acc and by H",
+        "pick_acc_gt_baseline": false,
+        "quarantine_worst_acc": true,
+        "quarantine_worst_H": true
+      },
+      "S1": {
+        "pass": false,
+        "rho_DI": 0.7500000000000002,
+        "p_DI": 0.0651869626074785,
+        "rho_H": 0.4531634835874829,
+        "p_H": 0.3171365726854629
+      },
+      "S2": {
+        "pass": true,
+        "no_contradiction": true,
+        "delta_H_ok": true,
+        "eps_H": 0.05
+      }
+    },
+    {
+      "source": "ibrl",
+      "target": "imas2",
+      "rho_srcDI_tgtDI": 0.7500000000000002,
+      "rho_srcDI_tgtH": 0.642857142857143,
+      "rho_srcDI_tgtAcc": -0.545544725589981,
+      "rho_srcDI_neg_tgtAcc": 0.545544725589981,
+      "perm_p_DI": 0.0657868426314737,
+      "perm_p_H": 0.1349730053989202,
+      "fisher_pick_ex_near": "wider",
+      "fisher_pick_with_near": "near_identity",
+      "entropy_pick_ex_near_on_target": "baseline",
+      "target_metrics": {
+        "fisher_pick": {
+          "rule": "wider",
+          "accuracy": 0.768,
+          "cond_entropy": 0.6760595068505738,
+          "tr_delta_I": 115.37001172107968
+        },
+        "baseline": {
+          "accuracy": 0.77,
+          "cond_entropy": 0.6753434374762511,
+          "tr_delta_I": 118.56963636026789
+        },
+        "quarantine": {
+          "accuracy": {
+            "quarantine_wider": 0.736,
+            "quarantine_review": 0.736
+          },
+          "cond_entropy": {
+            "quarantine_wider": 0.8088327484571671,
+            "quarantine_review": 0.8092372390150119
+          }
+        },
+        "entropy_pick": {
+          "rule": "baseline",
+          "accuracy": 0.77,
+          "cond_entropy": 0.6753434374762511
+        },
+        "near_identity": {
+          "accuracy": 0.824,
+          "cond_entropy": 0.5425717463550052
+        }
+      },
+      "eps_H": 0.06753434374762511,
+      "delta_H_baseline_minus_pick": -0.0007160693743226698,
+      "heath_tongyong": {
+        "pass": true,
+        "criterion": "\u03c1(src\u0394I,tgt\u0394I)\u22650.5 AND \u03c1(src\u0394I,tgtH)\u22650.5 AND \u03c1(src\u0394I,\u2212tgtAcc)\u22650.5",
+        "flags": {
+          "rho_srcDI_tgtDI": true,
+          "rho_srcDI_tgtH": true,
+          "rho_srcDI_tgtAcc": false,
+          "rho_srcDI_neg_tgtAcc": true
+        },
+        "values": {
+          "rho_srcDI_tgtDI": 0.7500000000000002,
+          "rho_srcDI_tgtH": 0.642857142857143,
+          "rho_srcDI_tgtAcc": -0.545544725589981,
+          "rho_srcDI_neg_tgtAcc": 0.545544725589981
+        }
+      },
+      "heath_zhengxiang": {
+        "pass": false,
+        "criterion": "fisher_pick_ex_near acc > baseline AND quarantine bottom-half by acc and by H",
+        "pick_acc_gt_baseline": false,
+        "quarantine_worst_acc": true,
+        "quarantine_worst_H": true
+      },
+      "S1": {
+        "pass": false,
+        "rho_DI": 0.7500000000000002,
+        "p_DI": 0.0657868426314737,
+        "rho_H": 0.642857142857143,
+        "p_H": 0.1349730053989202
+      },
+      "S2": {
+        "pass": false,
+        "no_contradiction": false,
+        "delta_H_ok": true,
+        "eps_H": 0.06753434374762511
+      }
+    },
+    {
+      "source": "unit_disk",
+      "target": "ibrl",
+      "rho_srcDI_tgtDI": 0.7142857142857144,
+      "rho_srcDI_tgtH": 0.4728662437434605,
+      "rho_srcDI_tgtAcc": -0.20583232685540792,
+      "rho_srcDI_neg_tgtAcc": 0.20583232685540792,
+      "perm_p_DI": 0.08498300339932013,
+      "perm_p_H": 0.27654469106178764,
+      "fisher_pick_ex_near": "quarantine_wider",
+      "fisher_pick_with_near": "near_identity",
+      "entropy_pick_ex_near_on_target": "wider",
+      "target_metrics": {
+        "fisher_pick": {
+          "rule": "quarantine_wider",
+          "accuracy": 0.9072771390772587,
+          "cond_entropy": 0.18608187920498928,
+          "tr_delta_I": 3.0415307857560534
+        },
+        "baseline": {
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0,
+          "tr_delta_I": 2.7851075641571743
+        },
+        "quarantine": {
+          "accuracy": {
+            "quarantine_wider": 0.9072771390772587,
+            "quarantine_review": 0.9072771390772587
+          },
+          "cond_entropy": {
+            "quarantine_wider": 0.18608187920498928,
+            "quarantine_review": 0.22576427585805248
+          }
+        },
+        "entropy_pick": {
+          "rule": "wider",
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0
+        },
+        "near_identity": {
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0
+        }
+      },
+      "eps_H": 0.05,
+      "delta_H_baseline_minus_pick": -0.18608187920498928,
+      "heath_tongyong": {
+        "pass": false,
+        "criterion": "\u03c1(src\u0394I,tgt\u0394I)\u22650.5 AND \u03c1(src\u0394I,tgtH)\u22650.5 AND \u03c1(src\u0394I,\u2212tgtAcc)\u22650.5",
+        "flags": {
+          "rho_srcDI_tgtDI": true,
+          "rho_srcDI_tgtH": false,
+          "rho_srcDI_tgtAcc": false,
+          "rho_srcDI_neg_tgtAcc": false
+        },
+        "values": {
+          "rho_srcDI_tgtDI": 0.7142857142857144,
+          "rho_srcDI_tgtH": 0.4728662437434605,
+          "rho_srcDI_tgtAcc": -0.20583232685540792,
+          "rho_srcDI_neg_tgtAcc": 0.20583232685540792
+        }
+      },
+      "heath_zhengxiang": {
+        "pass": false,
+        "criterion": "fisher_pick_ex_near acc > baseline AND quarantine bottom-half by acc and by H",
+        "pick_acc_gt_baseline": false,
+        "quarantine_worst_acc": true,
+        "quarantine_worst_H": true
+      },
+      "S1": {
+        "pass": false,
+        "rho_DI": 0.7142857142857144,
+        "p_DI": 0.08498300339932013,
+        "rho_H": 0.4728662437434605,
+        "p_H": 0.27654469106178764
+      },
+      "S2": {
+        "pass": false,
+        "no_contradiction": false,
+        "delta_H_ok": false,
+        "eps_H": 0.05
+      }
+    },
+    {
+      "source": "ibrl",
+      "target": "unit_disk",
+      "rho_srcDI_tgtDI": 0.7142857142857144,
+      "rho_srcDI_tgtH": 0.9063269671749657,
+      "rho_srcDI_tgtAcc": -0.6546536707079773,
+      "rho_srcDI_neg_tgtAcc": 0.6546536707079773,
+      "perm_p_DI": 0.09338132373525294,
+      "perm_p_H": 0.010397920415916816,
+      "fisher_pick_ex_near": "wider",
+      "fisher_pick_with_near": "near_identity",
+      "entropy_pick_ex_near_on_target": "wider",
+      "target_metrics": {
+        "fisher_pick": {
+          "rule": "wider",
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0,
+          "tr_delta_I": 1.8195238073042825
+        },
+        "baseline": {
+          "accuracy": 0.9999999999999999,
+          "cond_entropy": 0.0,
+          "tr_delta_I": 1.83272756850074
+        },
+        "quarantine": {
+          "accuracy": {
+            "quarantine_wider": 0.9099999999999997,
+            "quarantine_review": 0.9099999999999998
+          },
+          "cond_entropy": {
+            "quarantine_wider": 0.23526775184125878,
+            "quarantine_review": 0.31285796664325793
+          }
+        },
+        "entropy_pick": {
+          "rule": "wider",
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0
+        },
+        "near_identity": {
+          "accuracy": 0.9999999999999998,
+          "cond_entropy": 0.0
+        }
+      },
+      "eps_H": 0.05,
+      "delta_H_baseline_minus_pick": 0.0,
+      "heath_tongyong": {
+        "pass": true,
+        "criterion": "\u03c1(src\u0394I,tgt\u0394I)\u22650.5 AND \u03c1(src\u0394I,tgtH)\u22650.5 AND \u03c1(src\u0394I,\u2212tgtAcc)\u22650.5",
+        "flags": {
+          "rho_srcDI_tgtDI": true,
+          "rho_srcDI_tgtH": true,
+          "rho_srcDI_tgtAcc": false,
+          "rho_srcDI_neg_tgtAcc": true
+        },
+        "values": {
+          "rho_srcDI_tgtDI": 0.7142857142857144,
+          "rho_srcDI_tgtH": 0.9063269671749657,
+          "rho_srcDI_tgtAcc": -0.6546536707079773,
+          "rho_srcDI_neg_tgtAcc": 0.6546536707079773
+        }
+      },
+      "heath_zhengxiang": {
+        "pass": false,
+        "criterion": "fisher_pick_ex_near acc > baseline AND quarantine bottom-half by acc and by H",
+        "pick_acc_gt_baseline": false,
+        "quarantine_worst_acc": true,
+        "quarantine_worst_H": true
+      },
+      "S1": {
+        "pass": false,
+        "rho_DI": 0.7142857142857144,
+        "p_DI": 0.09338132373525294,
+        "rho_H": 0.9063269671749657,
+        "p_H": 0.010397920415916816
+      },
+      "S2": {
+        "pass": true,
+        "no_contradiction": true,
+        "delta_H_ok": true,
+        "eps_H": 0.05
+      }
+    }
+  ],
+  "pairwise_csv": "papers/coord-fisher/data/cross_bed_transfer_pairwise.csv",
+  "imas2_config_sensitivity": [
+    {
+      "policy_type": "fixed_orientation",
+      "dynamics": "deterministic",
+      "sensor_range": "small",
+      "rho_vs_fixed_sto_small_DI": 0.7207499701564473,
+      "rho_vs_fixed_sto_small_H": 0.9274260335029679
+    },
+    {
+      "policy_type": "fixed_orientation",
+      "dynamics": "deterministic",
+      "sensor_range": "large",
+      "rho_vs_fixed_sto_small_DI": 0.8214285714285715,
+      "rho_vs_fixed_sto_small_H": 0.8571428571428573
+    },
+    {
+      "policy_type": "fixed_orientation",
+      "dynamics": "stochastic",
+      "sensor_range": "small",
+      "rho_vs_fixed_sto_small_DI": 1.0,
+      "rho_vs_fixed_sto_small_H": 0.9285714285714288
+    },
+    {
+      "policy_type": "fixed_orientation",
+      "dynamics": "stochastic",
+      "sensor_range": "large",
+      "rho_vs_fixed_sto_small_DI": 0.8214285714285715,
+      "rho_vs_fixed_sto_small_H": 0.9642857142857145
+    },
+    {
+      "policy_type": "random_orientation",
+      "dynamics": "deterministic",
+      "sensor_range": "small",
+      "rho_vs_fixed_sto_small_DI": 0.7500000000000002,
+      "rho_vs_fixed_sto_small_H": 0.9274260335029679
+    },
+    {
+      "policy_type": "random_orientation",
+      "dynamics": "deterministic",
+      "sensor_range": "large",
+      "rho_vs_fixed_sto_small_DI": 0.8214285714285715,
+      "rho_vs_fixed_sto_small_H": 0.8571428571428573
+    },
+    {
+      "policy_type": "random_orientation",
+      "dynamics": "stochastic",
+      "sensor_range": "small",
+      "rho_vs_fixed_sto_small_DI": 0.8214285714285715,
+      "rho_vs_fixed_sto_small_H": 0.8928571428571429
+    },
+    {
+      "policy_type": "random_orientation",
+      "dynamics": "stochastic",
+      "sensor_range": "large",
+      "rho_vs_fixed_sto_small_DI": 0.8214285714285715,
+      "rho_vs_fixed_sto_small_H": 0.9642857142857145
+    }
+  ],
+  "S3_negative_control": {
+    "note": "Placement-transfer Fisher\u2194MI already failed on stochastic IMAS\u00b2 (spearman\u2248-0.15, top5_overlap=0; see imas2_summary.json). Not rerun.",
+    "pass": false,
+    "source": "papers/coord-fisher/data/imas2_summary.json placements.stochastic_small"
+  },
+  "overall": {
+    "any_tongyong": true,
+    "any_zhengxiang": false,
+    "any_S1": false,
+    "any_S2": true,
+    "n_tongyong": 2,
+    "n_zhengxiang": 0,
+    "n_S1": 0,
+    "n_S2": 3,
+    "n_pairs": 6
+  }
+}

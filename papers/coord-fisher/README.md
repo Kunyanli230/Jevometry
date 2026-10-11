@@ -175,6 +175,26 @@ project dependency): reported selection order 4,2,8,6,3, fewer iterations than
 the paper's N=1000. Full upstream pipeline (35 sensor trainings × 1000 iters) was
 not rerun on CPU.
 
+## Cross-bed rule-audit transfer
+
+Script: `examples/cross_bed_transfer/cross_bed_transfer.py` (also regenerates
+`unit_disk_rule_utility.csv` / `ibrl_rule_utility.csv`).
+
+```bash
+uv run python examples/cross_bed_transfer/cross_bed_transfer.py
+uv run pytest tests/unit/test_cross_bed_transfer.py -q
+```
+
+| Path | Role |
+| --- | --- |
+| `data/unit_disk_rule_utility.csv` | unit-disk: tr_delta_I + exact H(y_share\|A) / Bayes acc |
+| `data/ibrl_rule_utility.csv` | IBRL: same utility definition |
+| `data/cross_bed_transfer_pairwise.csv` | 6 directed pairs: Spearman ρs, Heath/S1/S2 flags |
+| `data/cross_bed_transfer_summary.json` | Full audit + IMAS² config sensitivity + S3 note |
+
+IMAS² representative slice: `fixed_orientation|stochastic|small` from
+`imas2_rule_comparison.csv`. No recalibration. S3 = prior placement-transfer failure.
+
 ## Iris real-data check
 
 ```bash
