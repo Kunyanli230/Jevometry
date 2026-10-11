@@ -139,3 +139,16 @@ def test_quarantine_action_mass_compare_artifacts() -> None:
     assert "auto_fix" in summary["actions_only_in_review"] or any(
         row["action"] == "auto_fix" for row in rows
     )
+
+
+def test_seven_rules_in_paper_artifacts() -> None:
+    import json
+
+    center = json.loads((REPO / "papers" / "coord-fisher" / "data" / "center_summary.json").read_text())
+    rules = [row["rule"] for row in center]
+    assert len(rules) == 7
+    assert "quarantine_wider" in rules
+    assert (REPO / "papers" / "coord-fisher" / "figures" / "fig_loss_center.png").is_file()
+    assert (REPO / "papers" / "coord-fisher" / "figures" / "fig_action_masses.png").is_file()
+    status = json.loads((REPO / "papers" / "coord-fisher" / "data" / "seven_rules_export.json").read_text())
+    assert status["n_rules"] == 7
