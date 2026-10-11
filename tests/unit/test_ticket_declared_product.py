@@ -133,3 +133,32 @@ def test_surrogate_action_masses_near_identity_conserves() -> None:
         assert abs(float(row["mass_sum"]) - float(row["joint_sum"])) < 1e-12
     # every near_identity row is a joint atom label with positive or zero mass
     assert {row["action"] for row in near}
+
+
+def test_prob_floor_keeps_grid_defined() -> None:
+    from ticket_system import PROB_FLOOR, build_declared_joint, build_nodes, build_rule_maps
+    from jevometry.systems.pushforward import information_loss
+
+    assert PROB_FLOOR == 1e-12
+    nodes = build_nodes()
+    joint_model = build_declared_joint(nodes)
+    rule_maps = build_rule_maps(nodes)
+    grid = [
+        {"amount": amount, "wait_hours": wait}
+        for amount in (100.0, 250.0, 600.0)
+        for wait in (2.0, 8.0, 30.0)
+    ]
+    for theta in grid:
+        joint = joint_model.probabilities(theta)
+        assert float(np.min(joint.probabilities)) >= PROB_FLOOR - 1e-18
+        jacobian = joint_model.jacobian(theta)
+        assert jacobian is not None
+        for _name, aggregation in rule_maps:
+            result = information_loss(
+                joint,
+                jacobian,
+                aggregation,
+                parameter_names=["amount", "wait_hours"],
+            )
+            assert result.status.value == "ok"
+            assert result.reason_code != "zero_probability_outcome"

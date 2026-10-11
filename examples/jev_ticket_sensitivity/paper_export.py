@@ -255,13 +255,13 @@ def fig_surrogate_rule_center_bar(center_rows: list[dict]) -> None:
     ax.set_title(r"Surrogate rule information loss at $(250, 8)$")
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
-    fig.savefig(FIGS / "surrogate_rule_center_bar.pdf")
-    fig.savefig(FIGS / "surrogate_rule_center_bar.png", dpi=160)
+    fig.savefig(FIGS / "surrogate_rule_loss_center.pdf")
+    fig.savefig(FIGS / "surrogate_rule_loss_center.png", dpi=160)
     plt.close(fig)
 
 
 def fig_surrogate_rule_loss_heatmap(rows: list[dict]) -> None:
-    rules = list(RULE_ORDER)
+    rules = [name for name in RULE_ORDER if name != "near_identity"]
     amounts = sorted({float(row["amount"]) for row in rows})
     waits = sorted({float(row["wait_hours"]) for row in rows})
     fig, axes = plt.subplots(1, len(rules), figsize=(11.5, 3.4), sharey=True)
@@ -291,6 +291,11 @@ def fig_surrogate_rule_loss_heatmap(rows: list[dict]) -> None:
 
 
 def export_surrogate_rule_figures() -> dict:
+    import sys
+
+    sys.path.insert(0, str(EXAMPLE))
+    from ticket_system import LOGIT_SCALE, PROB_FLOOR
+
     rows = _load_surrogate_grid()
     center_rows = _surrogate_center_rows(rows)
     fig_surrogate_rule_center_bar(center_rows)
@@ -307,10 +312,45 @@ def export_surrogate_rule_figures() -> dict:
         if row["status"] == "ok"
     }
     all_points = {(float(row["amount"]), float(row["wait_hours"])) for row in rows}
+
+    mass_path = DATA / "surrogate_action_masses.csv"
+    mass_rows = list(csv.DictReader(mass_path.open(newline="", encoding="utf-8")))
+    probe_points = [(250.0, 8.0), (600.0, 2.0), (600.0, 8.0)]
+
+    def _masses(amount: float, wait: float, rule: str) -> dict[str, float]:
+        return {
+            row["action"]: float(row["mass"])
+            for row in mass_rows
+            if float(row["amount"]) == amount
+            and float(row["wait_hours"]) == wait
+            and row["rule"] == rule
+        }
+
+    action_mass_deltas: dict[str, dict] = {}
+    legacy_flip_present = False
+    for amount, wait in probe_points:
+        baseline = _masses(amount, wait, "baseline")
+        stricter = _masses(amount, wait, "stricter")
+        keys = sorted(set(baseline) | set(stricter))
+        deltas = {key: stricter.get(key, 0.0) - baseline.get(key, 0.0) for key in keys}
+        legacy = (
+            deltas.get("priority_queue", 0.0) > 1e-6
+            and deltas.get("standard_queue", 0.0) < -1e-6
+        )
+        legacy_flip_present = legacy_flip_present or legacy
+        action_mass_deltas[f"({amount:g},{wait:g})"] = {
+            "stricter_minus_baseline": deltas,
+            "legacy_flip_present": legacy,
+        }
+
     summary = {
         "center": CENTER,
+        "LOGIT_SCALE": float(LOGIT_SCALE),
+        "PROB_FLOOR": float(PROB_FLOOR),
         "rule_order": list(RULE_ORDER),
+        "tr_Iz": float(by_rule["near_identity"]["tr_Iz"]),
         "center_tr_Iz": float(by_rule["near_identity"]["tr_Iz"]),
+        "tr_loss": {name: float(by_rule[name]["tr_loss"]) for name in RULE_ORDER},
         "center_losses": {
             name: {
                 "tr_Iz": float(by_rule[name]["tr_Iz"]),
@@ -323,9 +363,12 @@ def export_surrogate_rule_figures() -> dict:
         "center_order_holds": order_holds,
         "grid_ok_points": len(ok_points),
         "grid_points": len(all_points),
+        "action_mass_deltas": action_mass_deltas,
+        "legacy_flip_present": legacy_flip_present,
         "source_csv": str(GRID_CSV.relative_to(ROOT)),
+        "action_mass_csv": str(mass_path.relative_to(ROOT)),
         "figures": [
-            "figures/surrogate_rule_center_bar.pdf",
+            "figures/surrogate_rule_loss_center.pdf",
             "figures/surrogate_rule_loss_heatmap.pdf",
         ],
     }
@@ -333,6 +376,7 @@ def export_surrogate_rule_figures() -> dict:
         json.dumps(summary, indent=2) + "\n"
     )
     return summary
+
 
 
 def main() -> int:
