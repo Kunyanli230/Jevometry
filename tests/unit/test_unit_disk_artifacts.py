@@ -17,6 +17,16 @@ EXAMPLES = REPO / "examples" / "unit_disk_sensors"
 sys.path.insert(0, str(EXAMPLES))
 
 
+def _use_unit_disk_modules() -> None:
+    """Other example twins also ship a top-level ``system`` module; pin ours."""
+    for name in ("system", "ibrl_system"):
+        sys.modules.pop(name, None)
+    path = str(EXAMPLES)
+    if path in sys.path:
+        sys.path.remove(path)
+    sys.path.insert(0, path)
+
+
 def test_unit_disk_artifacts_exist() -> None:
     csv_path = DATA / "unit_disk_center_loss.csv"
     json_path = DATA / "unit_disk_validation_summary.json"
@@ -41,6 +51,7 @@ def test_unit_disk_artifacts_exist() -> None:
 
 
 def test_unit_disk_core_order_and_live_eval() -> None:
+    _use_unit_disk_modules()
     from system import CORE_RULE_NAMES, build_system
     from jevometry.systems.pushforward import information_loss
 
@@ -74,6 +85,7 @@ def test_unit_disk_core_order_and_live_eval() -> None:
 
 def test_unit_disk_feature_jacobian_fd() -> None:
     """Finite-difference check on field_features Jacobian (smoke)."""
+    _use_unit_disk_modules()
     from system import field_features, field_features_jacobian
 
     amp, ls = 0.7, 0.35

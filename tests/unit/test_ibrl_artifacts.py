@@ -17,6 +17,16 @@ EXAMPLES = REPO / "examples" / "unit_disk_sensors"
 sys.path.insert(0, str(EXAMPLES))
 
 
+def _use_unit_disk_modules() -> None:
+    """Other example twins also ship a top-level ``system`` module; pin ours."""
+    for name in ("system", "ibrl_system"):
+        sys.modules.pop(name, None)
+    path = str(EXAMPLES)
+    if path in sys.path:
+        sys.path.remove(path)
+    sys.path.insert(0, path)
+
+
 def test_ibrl_artifacts_exist() -> None:
     csv_path = DATA / "ibrl_center_loss.csv"
     json_path = DATA / "ibrl_validation_summary.json"
@@ -44,6 +54,7 @@ def test_ibrl_artifacts_exist() -> None:
 
 
 def test_ibrl_core_order_and_live_eval() -> None:
+    _use_unit_disk_modules()
     from ibrl_system import CORE_RULE_NAMES, build_ibrl_bundle
     from jevometry.systems.pushforward import information_loss
 
