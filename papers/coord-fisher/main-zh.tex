@@ -54,7 +54,7 @@
 \newtheorem{proposition}{命题}
 \newtheorem{remark}{注}
 
-\title{通过动作聚合后的 Fisher 信息损失\\比较多智能体协调规则}
+\title{去中心化传感智能体网络中\\协调规则的 Fisher 信息损失}
 \author{
   Heath Li\\
   \texttt{Kunyanli230/Jevometry}\\
@@ -67,31 +67,37 @@
 \maketitle
 
 \begin{abstract}
-多智能体决策系统常常把\emph{感知}——输出局部结果上范畴分布的专用智能体——与\emph{协调}——把联合结果映射到小动作字母表（例如拒绝、自动应用、升级给人工）的确定性规则——分开。尽管感知模型与联合构造在 Dec-POMDP 主动感知与信息采集中已有仔细处理，协调层却经常由启发式设计，并仅通过任务奖励或吞吐量评估。本文提出一个互补问题：\emph{在智能体输出分布固定的前提下，哪些协调规则对底层参数销毁的 Fisher 信息最少？}
+去中心化传感网络经常面临“最后一英里”协调问题：每个 mote 或边缘智能体只观测到局部读数与局部坐标，但团队必须决定\emph{谁与谁交换什么}，以及在不确定时何时\emph{隔离（quarantine）}报告。感知——由读数与几何诱导的局部范畴分布——与协调——把联合压缩为交换或隔离动作的确定性规则——往往被分开设计。尽管 Dec-POMDP 主动感知与信息驱动传感仔细处理了观察什么，协调层却经常是启发式的，并仅以任务奖励或吞吐量评估。本文提出一个互补问题：\emph{在智能体局部律固定的前提下，哪些与 $\theta$ 无关的协调规则对全局场或事件参数销毁的 Fisher 信息最少？}
 
-我们将协调形式化为与 $\theta$ 无关的聚合映射 $A=f(Z)$，并用声明联合与其推前之间的 Fisher 信息数据处理间隙 $I_Z(\theta)-I_A(\theta)\succeq 0$ 量化信息损失。在 Jevometry 三智能体数据清洗委员会（适用性、修复、风险）及声明乘积联合下实例化该框架，我们在证据与歧义网格上比较七条纯规则——baseline、stricter、wider、quarantine-to-review、混合 quarantine-wider 拆分、粗粒度二元规则，以及近恒等上界。在设计中心点，baseline 协调约丢弃 $\mathrm{tr}(I_Z)$ 的一半；将 quarantine 软化为人工复核可挽回该损失的相当一部分；再与不同的 auto-normalize/auto-impute 标签组合，可在完整设计网格上进一步改进。粗化为二元 reject/proceed 闸门则损失更多。排序
+我们将协调形式化为 AggregationMap $A=f(Z)$，并用声明乘积联合与其推前之间的数据处理间隙 $I_Z(\theta)-I_A(\theta)\succeq 0$ 量化信息损失。规则按 $\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$ 排序。预期的主要应用是合成 unit-disk 二维传感场（主实验，即将开展），并以 Intel Berkeley Lab（IBRL）mote~$9$--$16$ 子网作为真实数据对照（同样即将开展）。作为同一 AggregationMap 纲领的当前可复现解析实例，我们使用 Jevometry 三智能体数据清洗委员会（适用性、修复、风险），在证据与歧义网格上比较七条纯规则——baseline、stricter、wider、quarantine-to-review、混合 quarantine-wider 拆分、粗粒度二元规则，以及近恒等上界。在设计中心点，baseline 协调约丢弃 $\mathrm{tr}(I_Z)$ 的一半；将 quarantine 软化为人工复核可挽回该损失的相当一部分；再与不同的 auto-normalize/auto-impute 标签组合，可在完整设计网格上进一步改进。排序
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
-在每个网格单元上稳定；$\Delta_f$ 的参数轴分解表明 quarantine 软化主要保留歧义方向。我们讨论智能体委员会的设计含义、迫使确定性映射的 API 约束，以及解析 softmax 族相对在线决策模型 API 的局限。配套代码与可复现表格随 Jevometry 仓库一并提供。
+在每个网格单元上稳定。我们讨论传感智能体交换与隔离策略的设计含义、迫使确定性映射的 API 约束，以及在 unit-disk 与 IBRL 结果到位之前清洗数值作为示意性概念验证的角色。配套代码与可复现表格随 Jevometry 仓库一并提供。
 \end{abstract}
 
 \section{引言}
 
-大语言模型与专用决策 API 使获取看起来已校准的局部判断范畴分布变得便宜：某修复是否适用、尝试何种修复、自动写入有多危险。在生产数据系统中，这些局部判断很少是最终产物。协调器——往往是一小段确定性业务逻辑——把智能体输出的联合压缩为可执行、可延期或可拒绝的最终动作~\citep{jevometry2026}。
+现代传感栈使每个 mote 或边缘智能体廉价地发出看起来已校准的局部判断范畴分布：观测质量、是否上报、与哪个邻居交换，或读数是否应被隔离。在去中心化传感网络中，这些局部判断很少是最终产物。协调器——往往是团队共享的一小段确定性逻辑——把智能体输出的联合压缩为交换决策（谁/交换什么）或隔离安全阀~\citep{jevometry2026}。
 
-这种压缩是信息瓶颈。经典决策理论与 Dec-POMDP 规划优化定义在信念或预测质量上的奖励~\citep{lauri2020prediction,lauri2020decpomdp,oliehoek2016decpomdp}。信息论多智能体感知最大化互信息或相关集函数，常带有子模贪婪保证~\citep{krause2008near,nemhauser1978analysis,corah2021scalable,shi2026imas2}。这些工作选择\emph{观察什么}或\emph{谁应观察}。它们本身并不能告诉实践者：两条已部署的协调规则中，哪一条对智能体设计所跟踪的参数保留更多敏感性。
+这种压缩是信息瓶颈。经典决策理论与 Dec-POMDP 规划优化定义在信念或预测质量上的奖励~\citep{lauri2020prediction,lauri2020decpomdp,oliehoek2016decpomdp}。信息论多智能体感知最大化互信息或相关集函数，常带有子模贪婪保证~\citep{krause2008near,nemhauser1978analysis,corah2021scalable,shi2026imas2}。这些工作选择\emph{观察什么}或\emph{谁应观察}。它们本身并不能告诉实践者：两条已部署的协调规则中，哪一条对网络设计所跟踪的全局场或事件参数~$\theta$ 保留更多敏感性。
 
 Fisher 信息为这种敏感性提供了局部、可微的语言~\citep{fisher1925theory,amari2016information}。对具有得分 Jacobian $J_Z$ 的离散模型 $P_\theta(Z)$，Fisher 矩阵 $I_Z=J_Z^\top \mathrm{diag}(P_\theta)^{-1} J_Z$ 度量无穷小参数移动如何强烈改变结果分布。当固定映射 $f$ 产生动作 $A=f(Z)$ 时，Fisher 信息的数据处理不等式在标准正则条件下断言 $I_Z-I_A\succeq 0$~\citep{zamir1998fisherdpi,cover2006elements}。当 $I_Z$ 固定时，标量 $\mathrm{tr}(I_Z-I_A)$ 便是可比较的损失摘要。
 
+\paragraph{目标设定与当前证据。}
+我们的主叙事是：在局部观测下的去中心化传感智能体，以 Fisher~$\Delta I$ 作为共享决策函数，在协调规则——包括不确定时的隔离——之间进行选择。预期的主实验是合成 unit-disk 二维场；次要对照是 Intel Berkeley Lab（IBRL）mote~$9$--$16$ 子网。这些传感实验即将开展，本文\emph{不}报告其数值。我们\emph{确实}报告的是同一 AggregationMap 纲领的可复现解析实例：Jevometry 三智能体清洗委员会，其表格与图作为按 $\mathrm{tr}(\Delta)$ 对
+\texttt{near}/\texttt{wider}/\texttt{baseline}/\texttt{stricter}/
+\texttt{quarantine\_*}/\texttt{near\_identity} 类规则排序的概念验证。
+
 \paragraph{贡献。}
 \begin{enumerate}
-  \item 我们将多智能体协调规则比较表述为：在共享声明联合下，按 Fisher 信息损失对与 $\theta$ 无关的聚合映射排序（第~\ref{sec:problem}~节）。
-  \item 我们在 Jevometry 清洗委员会中实例化七条纯规则，并提供可复现实验装置：扫描参数网格、导出 CSV/JSON（含参数轴损失对角元与分数损失），并生成发表用图（第~\ref{sec:method}~节）。
-  \item 经验上，在设计中心点 baseline 规则约损失 $\mathrm{tr}(I_Z)$ 的 $44\%$；quarantine-to-review 相对 baseline 约削减四分之一损失；混合 quarantine-wider 规则进一步改进（$\mathrm{tr}(\Delta)\approx 2.16$）并在完整网格上优于 quarantine-to-review；二元闸门的损失高于更严的中风险拒绝（第~\ref{sec:experiments}~节）。
-  \item 我们讨论该度量如何补充以奖励为中心的 Dec-POMDP 评估，以及 API 约束（仅确定性映射）对未来可学习协调器的含义（第~\ref{sec:discussion}~节）。
+  \item 我们将多智能体协调规则比较表述为：在共享声明联合下，按 Fisher 信息损失对与 $\theta$ 无关的聚合映射排序，并以传感网络交换与隔离作为动机性的 AggregationMap 语义（第~\ref{sec:problem}~节）。
+  \item 我们将该纲领映射到三层——全局场参数 $\theta$、局部智能体范畴律，以及与 $\theta$ 无关的 AggregationMap——并陈述计划中的 unit-disk 主实验与 IBRL 对照（第~\ref{sec:sensor-layers}~节）。
+  \item 作为当前解析实例，我们在 Jevometry 清洗委员会中实例化七条纯规则，并提供可复现实验装置：扫描参数网格、导出 CSV/JSON（含参数轴损失对角元与分数损失），并生成发表用图（第~\ref{sec:method}~节）。
+  \item 经验上，在设计中心点 baseline 规则约损失 $\mathrm{tr}(I_Z)$ 的 $44\%$；quarantine-to-review 相对 baseline 约削减四分之一损失；混合 quarantine-wider 规则进一步改进（$\mathrm{tr}(\Delta)\approx 2.16$）并在完整网格上优于 quarantine-to-review；二元闸门的损失高于更严的中风险拒绝（第~\ref{sec:experiments}~节）。这些数值用于说明 AggregationMap 审计；它们不是 unit-disk 或 IBRL 结果。
+  \item 我们讨论该度量如何补充以奖励为中心的 Dec-POMDP 传感协调评估，以及 API 约束（仅确定性映射）对未来可学习协调器的含义（第~\ref{sec:discussion}~节）。
 \end{enumerate}
 
-本稿旨在作为伴随开源实验的短期刊 / arXiv 草稿。它并非关于在线清洗质量的主张；智能体族是解析且示意性的。
+本稿旨在作为伴随开源实验的短期刊 / arXiv 草稿。清洗委员会数值是解析且示意性的；一旦 unit-disk 与 IBRL 实验装置落地，传感场结果将取代它们成为主要经验叙事。
 
 \section{相关工作}
 \label{sec:related}
@@ -100,7 +106,7 @@ Fisher 信息为这种敏感性提供了局部、可微的语言~\citep{fisher19
 \citet{lauri2020prediction} 通过个体预测动作，将带预测奖励的多智能体主动感知约化为标准 Dec-POMDP 求解器，并给出去中心化损失界。\citet{lauri2020decpomdp} 在离散与连续状态设定下，用策略图改进优化凸信念依赖奖励（例如负熵）。两条线通常把团队视为固定，并把信息目标折入奖励，而非事后比较确定性协调器。
 
 \paragraph{信息驱动的多智能体感知。}
-子模传感器选择与多机器人跟踪在单调性下以贪婪 $(1-1/e)$ 保证最大化互信息或相关覆盖目标~\citep{krause2008near,corah2021scalable}。\citet{shi2026imas2} 在 Dec-POMDP 中为互信息目标联合选择智能体并综合感知策略。\citet{olkin2024vulcan} 与 \citet{molloy2023smoother} 进一步将规划连接到信息与平滑器熵。我们的设定是对偶的：智能体及其局部律\emph{固定}；仅最后一英里到动作的映射变化。
+子模传感器选择与多机器人跟踪在单调性下以贪婪 $(1-1/e)$ 保证最大化互信息或相关覆盖目标~\citep{krause2008near,corah2021scalable}。\citet{shi2026imas2} 在 Dec-POMDP 中为互信息目标联合选择智能体并综合感知策略。\citet{olkin2024vulcan} 与 \citet{molloy2023smoother} 进一步将规划连接到信息与平滑器熵。我们的设定是对偶的：智能体及其局部律\emph{固定}；仅最后一英里到交换或隔离动作的映射变化。
 
 \paragraph{面向智能体的信息几何。}
 Fisher--Rao 几何为参数化分布族提供局部度量~\citep{amari2016information}。Jevometry 为智能体系统操作化节点级与系统级 Fisher 诊断~\citep{jevometry2026}。我们使用其推前 \texttt{information\_loss} 原语，且不修改底层 DECLARED\_PRODUCT 构造。
@@ -115,7 +121,7 @@ Fisher--Rao 几何为参数化分布族提供局部度量~\citep{amari2016inform
   P_\theta(Z=z)=\prod_{i=1}^{m} P_\theta(Z_i=z_i),
   \qquad z=(z_1,\ldots,z_m)\in\mathcal{Z}=\prod_i\mathcal{Z}_i.
 \end{equation}
-在我们的清洗例子中，$m=3$，$d=2$，且 $\theta=(\mathrm{evidence},\mathrm{ambiguity})$，坐标在 $[0,1]$。该声明是模型假设，而非关于在线 API 的经验主张。
+在下文的清洗实例中，$m=3$，$d=2$，且 $\theta=(\mathrm{evidence},\mathrm{ambiguity})$，坐标在 $[0,1]$。在计划中的传感实例中，$\theta$ 转而表示全局场或事件参数（例如源位置、强度或事件指示），而非原始单节点读数。乘积声明是模型假设，而非关于在线 API 或无线电轨迹的经验主张。
 
 \subsection{作为聚合的协调}
 
@@ -146,18 +152,42 @@ Fisher--Rao 几何为参数化分布族提供局部度量~\citep{amari2016inform
 \end{proposition}
 
 \begin{remark}
-依赖 $\theta$ 的映射（软策略、以参数为条件的学习路由）落在 Jevometry 实现的该保证之外，并被报告为不支持。因此本文仅关注纯的、全覆盖的、与 $\theta$ 无关的规则——即匹配典型生产 if-then 协调器与库的 AggregationMap 契约的那一类。
+依赖 $\theta$ 的映射（软策略、以参数为条件的学习路由）落在 Jevometry 实现的该保证之外，并被报告为不支持。因此本文仅关注纯的、全覆盖的、与 $\theta$ 无关的规则——即匹配典型生产 if-then 协调器、mote 固件交换策略与库的 AggregationMap 契约的那一类。
 \end{remark}
 
 \paragraph{比较原则。}
 固定智能体与联合构造。按 $\mathrm{tr}(\Delta_f)$ 对规则排序（越低越好），或等价地按 $\mathrm{tr}(I_A)$（越高越好）。因为 $I_Z$ 共享，按损失排序与按保留信息排序相同。
 
+\section{传感智能体协调的三层结构}
+\label{sec:sensor-layers}
+
+AggregationMap 纲领可用匹配去中心化传感的三层解读：
+
+\begin{enumerate}
+  \item[(i)] \textbf{全局参数 $\theta$。}
+  $\theta$ 表示感兴趣的场级或事件级量（源位置、强度、空间协方差超参数、二元事件指示），\emph{而非}单个 mote 的原始标量读数。Fisher 损失相对于该 $\theta$ 度量。
+
+  \item[(ii)] \textbf{局部智能体律。}
+  每个传感器是一个智能体。其范畴分布 $P_\theta(Z_i)$ 由局部坐标与局部读数诱导——例如观测质量分箱、上报/保持决策，或 unit-disk 通信图下的邻居选择字母表。声明乘积联合组装这些局部律。
+
+  \item[(iii)] \textbf{作为交换与隔离的 AggregationMap。}
+  与 $\theta$ 无关的规则 $f$ 把联合压缩为协调动作：谁与谁交换、发送何种载荷，或在局部不确定性高时是否隔离报告。候选族复用下文研究的同一类定性旋钮——近邻交换、更宽邻域、baseline 固件、更严阈值、隔离变体，以及近恒等上界——并按 $\mathrm{tr}(\Delta_f)=\mathrm{tr}(I_Z-I_A)$ 排序。
+\end{enumerate}
+
+\paragraph{计划中的传感实验（尚无结果）。}
+\begin{itemize}
+  \item \textbf{主实验（即将开展）：}二维场中的合成 unit-disk 传感器。局部字母表与 AggregationMap 将遵循第~(ii)--(iii)~层；一旦实验装置完成，表格与图将报告 $\mathrm{tr}(\Delta)$ 排序。我们有意省略虚构的 unit-disk 数值。
+  \item \textbf{对照（即将开展）：}Intel Berkeley Lab（IBRL）子网，mote~$9$--$16$，作为同一 AggregationMap 接口下的真实部署健全性检查。同样，本稿不声称任何 IBRL 数值。
+\end{itemize}
+第~\ref{sec:method}--\ref{sec:experiments}~节中的清洗委员会研究，是层~(i)--(iii) 的当前、完全可复现解析说明，其中 $\theta=(\mathrm{evidence},\mathrm{ambiguity})$，修复/隔离动作扮演交换/隔离语义的角色。
+
 \section{方法与实验设计}
 \label{sec:method}
 
-\subsection{三智能体清洗委员会}
+\subsection{三智能体清洗委员会
+（解析实例）}
 
-我们复用离线 Jevometry 教程 \texttt{examples/three\_agent\_cleaning}~\citep{jevometry2026}。三个解析 softmax 智能体为噪声数值字段的单个候选修复产生分布：
+我们复用离线 Jevometry 教程 \texttt{examples/three\_agent\_cleaning}~\citep{jevometry2026} 作为 AggregationMap 审计的概念验证——而非关于在线传感场的主张。三个解析 softmax 智能体为噪声数值字段的单个候选修复产生分布：
 
 \begin{center}
 \begin{tabular}{lll}
@@ -171,7 +201,7 @@ risk & Score & $\{0,1,2\}$（低/中/高） \\
 \end{tabular}
 \end{center}
 
-局部 logit 在设计中心 $\theta_0=(0.7,0.3)$ 附近对 $(\theta-\theta_0)$ 为仿射，概率由 softmax 得到。联合是声明乘积（ConstructionMode.DECLARED\_PRODUCT）。不查询任何在线 API；不执行实际数据库写入。
+局部 logit 在设计中心 $\theta_0=(0.7,0.3)$ 附近对 $(\theta-\theta_0)$ 为仿射，概率由 softmax 得到。联合是声明乘积（ConstructionMode.DECLARED\_PRODUCT）。不查询任何在线 API；不执行实际数据库写入。该委员会中的 quarantine 与传感隔离阀扮演相同的结构角色：一种合并可区分联合结果的粗动作，因此除非被软化（例如变为人工复核或延迟交换），否则会抬高 $\mathrm{tr}(\Delta_f)$。
 
 \subsection{协调规则}
 \label{sec:rules}
@@ -188,6 +218,8 @@ risk & Score & $\{0,1,2\}$（低/中/高） \\
   \item[near\_identity] 每个联合结果元组一个动作标签（18 个标签）：在该字母表下的 Fisher 保留上界。
 \end{description}
 
+用传感语言表述，baseline/stricter/wider 对应更窄或更宽的交换策略与风险阈值；隔离变体是安全阀；近恒等是信息保留上界，而非可部署的无线电调度。
+
 \subsection{实验装置}
 
 脚本 \texttt{paper\_experiments.py} 一次构建节点与联合，在 $\mathrm{evidence}\in[0.2,0.9]$ 与 $\mathrm{ambiguity}\in[0.1,0.8]$ 的 $8\times 8$ 网格上评估 $I_Z$、$I_A$ 与 $\Delta_f$，并额外记录精确中心 $\theta_0$。输出：
@@ -202,7 +234,7 @@ risk & Score & $\{0,1,2\}$（低/中/高） \\
   \texttt{papers/coord-fisher/figures/}
 \end{itemize}
 
-\texttt{src/jevometry} 下的库代码未改动；仅扩展了示例级规则与脚本。
+\texttt{src/jevometry} 下的库代码未改动；仅扩展了示例级规则与脚本。unit-disk 与 IBRL 实验装置一旦可用，将复用同一 AggregationMap 与 \texttt{information\_loss} 接口。
 
 \section{实验}
 \label{sec:experiments}
@@ -214,7 +246,8 @@ risk & Score & $\{0,1,2\}$（低/中/高） \\
 \begin{table}[t]
 \centering
 \caption{中心 $\theta_0=(0.7,0.3)$ 处的 Fisher 迹，按损失升序排列。
-$|A|$ 为推前下具有正质量的动作数。}
+$|A|$ 为推前下具有正质量的动作数。
+清洗委员会解析说明——非 unit-disk 或 IBRL。}
 \label{tab:center}
 \begin{tabular}{lrrrrl}
 \toprule
@@ -249,7 +282,8 @@ $\mathrm{tr}(\Delta_{\mathrm{quarantine\_wider}})
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/fig_loss_center.pdf}
-\caption{设计中心处各规则的信息损失 $\mathrm{tr}(I_Z-I_A)$。}
+\caption{设计中心处各规则的信息损失 $\mathrm{tr}(I_Z-I_A)$
+（清洗委员会说明）。}
 \label{fig:center}
 \end{figure}
 
@@ -260,25 +294,28 @@ $\mathrm{tr}(\Delta_{\mathrm{quarantine\_wider}})
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_loss_heatmap.pdf}
-\caption{五条协调规则在 evidence$\times$ambiguity 上的损失热图。}
+\caption{五条协调规则在 evidence$\times$ambiguity 上的损失热图
+（清洗委员会说明）。}
 \label{fig:heat}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/fig_loss_curves.pdf}
-\caption{在固定歧义约 $0.3$ 处损失相对证据的变化。}
+\caption{在固定歧义约 $0.3$ 处损失相对证据的变化
+（清洗委员会说明）。}
 \label{fig:curves}
 \end{figure}
 
 \subsection{动作质量}
 
-图~\ref{fig:masses} 显示中心处概率质量如何划分。Stricter 把中风险质量再分配到拒绝。Wider 把自动应用拆成 normalize 与 impute。Quarantine-to-review 缩小拒绝、偏向人工复核。粗二元把自动应用与复核折叠进 \texttt{proceed}。这些质量转移正是 Fisher 损失背后的机制：合并得分行相异的结果会坍缩可区分的参数方向。
+图~\ref{fig:masses} 显示中心处概率质量如何划分。Stricter 把中风险质量再分配到拒绝。Wider 把自动应用拆成 normalize 与 impute。Quarantine-to-review 缩小拒绝、偏向人工复核。粗二元把自动应用与复核折叠进 \texttt{proceed}。这些质量转移正是 Fisher 损失背后的机制：合并得分行相异的结果会坍缩可区分的参数方向——当传感场中合并交换或隔离纤维时，AggregationMap 将展现同一机制。
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/fig_action_masses.pdf}
-\caption{非恒等规则在中心处的推前动作概率。}
+\caption{非恒等规则在中心处的推前动作概率
+（清洗委员会说明）。}
 \label{fig:masses}
 \end{figure}
 
@@ -292,42 +329,50 @@ $\mathrm{tr}(\Delta_{\mathrm{quarantine\_wider}})
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.9\linewidth]{figures/fig_frac_loss_heatmap.png}
-\caption{非恒等规则在 evidence$\times$ambiguity 网格上的分数损失 $\mathrm{tr}(\Delta)/\mathrm{tr}(I_Z)$。}
+\caption{非恒等规则在 evidence$\times$ambiguity 网格上的分数损失 $\mathrm{tr}(\Delta)/\mathrm{tr}(I_Z)$
+（清洗委员会说明）。}
 \label{fig:frac}
 \end{figure}
 
 \section{讨论}
 \label{sec:discussion}
 
+\paragraph{传感网络解读。}
+在层~(i)--(iii) 下，当局部智能体律固定时，$\mathrm{tr}(\Delta_f)$ 是在交换与隔离规则之间选择的共享离线评分。更软的隔离（延迟或人工/操作员复核而非硬丢弃）与更细的交换字母表（不同的邻居或载荷标签）是表~\ref{tab:center} 中 quarantine-wider 收益的直接类比。二元 proceed/reject 闸门在运维上仍然方便，但在信息上昂贵。在 unit-disk 与 IBRL 数值可用之前，清洗委员会仅提供定性指导：排序机制与 DPI 证书可迁移；绝对迹不必迁移。
+
 \paragraph{“一半 Fisher”意味着什么。}
-Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错了” $44\%$。它意味着：局部上，证据与歧义的无穷小变化对最终动作分布的推动，弱于对智能体输出联合的推动。若监控仪表盘只看动作率，就会低估底层委员会的敏感性。若下游估计器试图从动作反推 $\theta$，其问题严格难于从 $Z$ 反推。
+Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错了” $44\%$。它意味着：局部上，参数的无穷小变化对最终动作分布的推动，弱于对智能体输出联合的推动。若监控仪表盘只看动作或交换率，就会低估底层智能体的敏感性。若下游估计器试图从动作反推 $\theta$，其问题严格难于从 $Z$ 反推。
 
 \paragraph{设计要点。}
-在可实现的三/四动作策略中，将 quarantine 路由到复核比单独的 baseline 或 wider 保留更多 Fisher；将该软化与不同的 auto-normalize/auto-impute 标签组合，在本网格上仍严格更好。二元 proceed/reject 闸门在运维上方便，但在信息上昂贵。实践者在 A/B 测试前讨论规则变更时，可将 $\mathrm{tr}(\Delta_f)$——以及需要时其参数轴对角元——当作廉价的离线评分。
+在清洗说明中可实现的三/四动作策略里，将 quarantine 路由到复核比单独的 baseline 或 wider 保留更多 Fisher；将该软化与不同的 auto-normalize/auto-impute 标签组合，在本网格上仍严格更好。实践者在 A/B 测试或固件刷写前讨论规则变更时，可将 $\mathrm{tr}(\Delta_f)$——以及需要时其参数轴对角元——当作廉价的离线评分。
 
 \paragraph{与 Dec-POMDP 奖励的关系。}
-预测奖励与负熵目标~\citep{lauri2020prediction,lauri2020decpomdp} 优化感知策略。我们的度量并不取代它们；它在感知固定之后审计\emph{最后}一道确定性压缩。就此意义而言，它与 IMAS$^2$ 风格的联合选择~\citep{shi2026imas2} 互补：选择扩展谁可以观察；协调排序追问这些观察有多少在动作层幸存。
+预测奖励与负熵目标~\citep{lauri2020prediction,lauri2020decpomdp} 优化感知策略。我们的度量并不取代它们；它在感知固定之后审计\emph{最后}一道确定性压缩。就此意义而言，它与 IMAS$^2$ 风格的联合选择~\citep{shi2026imas2} 互补：选择扩展谁可以观察；协调排序追问这些观察有多少在交换/隔离层幸存。
 
 \paragraph{API 约束。}
-许多智能体平台仅暴露采样结果加确定性业务规则。软的、依赖 $\theta$ 的路由器要么需要声明条件动作模型，要么拒绝 DPI 证书——正是 Jevometry AggregationMap 所编码的契约。将本研究扩展到随机协调器是未来工作，并需要额外正则性。
+许多智能体与 mote 平台仅暴露采样结果加确定性业务或固件规则。软的、依赖 $\theta$ 的路由器要么需要声明条件动作模型，要么拒绝 DPI 证书——正是 Jevometry AggregationMap 所编码的契约。将本研究扩展到随机协调器是未来工作，并需要额外正则性。
 
 \section{局限}
 \label{sec:limitations}
 
 \begin{itemize}
-  \item 智能体分布是手工指定的解析 softmax 族，而非拟合的在线决策模型。绝对数值是示意性的。
+  \item 所报告的经验数值来自清洗委员会中手工指定的解析 softmax 族，而非拟合的在线决策模型、unit-disk 场或 IBRL 轨迹。绝对迹是示意性的。
+  \item 合成 unit-disk（主）与 IBRL mote~$9$--$16$（对照）传感实验即将开展；本稿不含对二者的任何虚构结果。
   \item 条件独立是声明的，而非检验的。
-  \item 我们报告 $\Delta_f$ 的参数轴对角元与特征值，但完整 CRLB 式解读仍需要本例未提供的观测似然契约。
+  \item 我们报告 $\Delta_f$ 的参数轴对角元与特征值，但完整 CRLB 式解读仍需要清洗例子未提供的观测似然契约。
   \item 各规则的动作字母表不同；作为关于 $\theta$ 的保留信息，$\mathrm{tr}(I_A)$ 比较仍然有意义，但把 $|A|$ 当作效用的解释超出范围。
-  \item 没有人工或任务奖励研究验证更低的 Fisher 损失会改善清洗结果。
+  \item 尚无人工、任务奖励或传感精度研究验证更低的 Fisher 损失会改善清洗或场估计结果。
 \end{itemize}
 
 \section{结论}
 \label{sec:conclusion}
 
-我们提出在共享声明联合下按 Fisher 信息损失对多智能体协调规则排序，并在可复现的三智能体清洗委员会上展示该方法。在感知固定时，确定性协调器可丢弃联合 Fisher 迹量级约一半；小的规则编辑（quarantine 处理、自动路径拆分、风险阈值）及其组合会以易于离线度量的幅度——包括沿各参数轴——移动该损失。配套实验装置与图旨在作为在变更在线流量前审计生产 if-then 委员会的模板。
+我们提出在共享声明联合下按 Fisher 信息损失对多智能体协调规则排序，并以去中心化传感智能体交换与隔离作为主要的 AggregationMap 叙事。在局部感知固定时，确定性协调器可丢弃联合 Fisher 迹的很大一部分；小的规则编辑（隔离处理、更细动作字母表、风险或邻域阈值）会以易于离线度量的幅度移动该损失。三智能体清洗委员会提供可复现的解析概念验证——包括稳定排序
+$\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
+\le\mathrm{stricter}$
+以及 quarantine-wider 收益——而合成 unit-disk 与 IBRL mote~$9$--$16$ 实验在实现后仍是预期的主经验支柱与对照支柱。
 
-未来工作包括：(i) 在同一 AggregationMap 接口下用 TypeSafe / 在线决策模型 Jacobian 替换解析智能体；(ii) 带显式条件动作模型的随机协调器；(iii) 在 JAAMAS 风格的经验研究中将 $\mathrm{tr}(\Delta_f)$ 与任务级效用耦合。
+未来工作包括：(i)~在同一 AggregationMap 接口下完成 unit-disk 主实验与 IBRL 对照；(ii)~在适当时用 TypeSafe / 在线决策模型 Jacobian 替换解析智能体；(iii)~带显式条件动作模型的随机协调器；(iv)~在 JAAMAS 风格的经验研究中将 $\mathrm{tr}(\Delta_f)$ 与任务级效用（场估计误差、清洗质量）耦合。
 
 \section*{可复现性}
 
@@ -339,7 +384,7 @@ uv run python examples/three_agent_cleaning/compare_rules.py
 uv run python examples/three_agent_cleaning/paper_experiments.py
 \end{verbatim}
 产物落在 \texttt{papers/coord-fisher/data} 与
-\texttt{figures/}。本 PDF 由 lualatex 自
+\texttt{figures/}。本 PDF 中的清洗委员会表格与图是当前解析说明；unit-disk 与 IBRL 实验装置即将开展。本 PDF 由 lualatex 自
 \texttt{papers/coord-fisher/main-zh.tex} 构建（英文版见 \texttt{main.tex}）。
 
 \bibliographystyle{plainnat}

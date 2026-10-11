@@ -4,6 +4,12 @@ Paper draft (arXiv / JAAMAS-oriented) and reproducible experiments for ranking
 deterministic multi-agent coordination rules by Fisher information loss after
 the action layer.
 
+**Primary framing:** decentralized sensor-agent networks (AggregationMap as
+exchange + quarantine; rank by `tr(Δ)=tr(I_Z−I_A)`). Planned main experiment:
+synthetic unit-disk 2D field. Planned control: IBRL motes 9–16. **No fabricated
+unit-disk/IBRL numbers** — cleaning-council tables/figures remain the current
+analytic illustration / proof of concept.
+
 > **NOTE:** `main-zh.tex` / `main-zh.pdf` is the Simplified Chinese 1:1 counterpart of `main.tex` (same sections, equations, tables, figures, citations; prose translated). Build with `lualatex` + `bibtex` (Noto Serif CJK SC / Noto Sans Mono CJK SC via fontspec).
 
 ## Contents

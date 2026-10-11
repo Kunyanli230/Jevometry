@@ -23,8 +23,8 @@
 \newtheorem{proposition}{Proposition}
 \newtheorem{remark}{Remark}
 
-\title{Comparing Multi-Agent Coordination Rules\\
-via Fisher Information Loss after Action Aggregation}
+\title{Fisher Information Loss for Coordination Rules\\
+in Decentralized Sensor-Agent Networks}
 \author{
   Heath Li\\
   \texttt{Kunyanli230/Jevometry}\\
@@ -36,61 +36,67 @@ via Fisher Information Loss after Action Aggregation}
 \maketitle
 
 \begin{abstract}
-Multi-agent decision systems often separate \emph{perception}---specialized
-agents that emit categorical distributions over local outcomes---from
-\emph{coordination}---a deterministic rule that maps the joint outcome to a
-small action alphabet (e.g., reject, auto-apply, escalate to a human).
-While perception models and joint constructions have received careful
-treatment in Dec-POMDP active perception and information gathering, the
-coordination layer is frequently designed by heuristics and then evaluated only
-through task reward or throughput. This paper asks a complementary question:
-\emph{holding the agents' output distributions fixed, which coordination rules
-destroy the least Fisher information about the underlying parameters?}
+Decentralized sensor networks routinely face a last-mile coordination problem:
+each mote or edge agent observes only a local reading and a local coordinate,
+yet the team must decide \emph{who exchanges what with whom}, and when to
+\emph{quarantine} a report under uncertainty. Perception---local categorical
+distributions induced by readings and geometry---and coordination---a
+deterministic rule that compresses the joint into exchange or quarantine
+actions---are often designed separately. While Dec-POMDP active perception
+and information-driven sensing carefully treat what to observe, the
+coordination layer is frequently heuristic and evaluated only by task reward
+or throughput. This paper asks a complementary question: \emph{holding the
+agents' local laws fixed, which $\theta$-independent coordination rules
+destroy the least Fisher information about the global field or event
+parameters?}
 
-We formalize coordination as a $\theta$-independent aggregation map $A=f(Z)$
-and quantify information loss by the data-processing gap
-$I_Z(\theta)-I_A(\theta)\succeq 0$ between the Fisher information of the
-declared joint and that of its pushforward. Instantiating the framework in the
-Jevometry three-agent data-cleaning council (applicability, repair, risk)
-under a declared product joint, we compare seven pure rules---baseline,
+We formalize coordination as an AggregationMap $A=f(Z)$ and quantify
+information loss by the data-processing gap
+$I_Z(\theta)-I_A(\theta)\succeq 0$ between the Fisher information of a
+declared product joint and that of its pushforward. Rules are ranked by
+$\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$. The intended primary application
+is a synthetic unit-disk 2D sensor field (main experiment, forthcoming) with
+an Intel Berkeley Lab (IBRL) subnet of motes~$9$--$16$ as a real-data control
+(also forthcoming). As a current reproducible analytic instantiation of the
+same AggregationMap programme, we use the Jevometry three-agent data-cleaning
+council (applicability, repair, risk) and compare seven pure rules---baseline,
 stricter, wider, quarantine-to-review, a hybrid quarantine-wider split,
 coarse binary, and a near-identity upper bound---on a grid over evidence and
 ambiguity. At the design centre, baseline coordination discards roughly half
 of $\mathrm{tr}(I_Z)$; softening quarantine into human review recovers a
 substantial fraction of that loss, and combining that softening with distinct
 auto-normalize/auto-impute labels yields a further improvement that holds on
-the full design grid. Coarsening to a binary reject/proceed gate loses still
-more. The ordering
+the full design grid. The ordering
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
-is stable on every grid cell; parameter-axis decompositions of $\Delta_f$ show
-that quarantine softening primarily preserves the ambiguity direction.
-We discuss design implications for agent councils, API constraints that force
-deterministic maps, and limitations of analytic softmax families relative to
-live decision-model APIs. Accompanying code and reproducible tables ship with
-the Jevometry repository.
+is stable on every grid cell. We discuss design implications for sensor-agent
+exchange and quarantine policies, API constraints that force deterministic
+maps, and the role of the cleaning numbers as an illustrative proof of
+concept pending unit-disk and IBRL results. Accompanying code and reproducible
+tables ship with the Jevometry repository.
 \end{abstract}
 
 \section{Introduction}
 
-Large language models and specialized decision APIs have made it cheap to
-obtain calibrated-looking categorical distributions over local judgments:
-whether a repair applies, which repair to attempt, how risky an automatic
-write is. In production data systems these local judgments are rarely the
-end product. A coordinator---often a short piece of deterministic
-business logic---compresses the joint of agent outputs into a final action
-that can be executed, deferred, or rejected~\citep{jevometry2026}.
+Modern sensing stacks make it cheap for each mote or edge agent to emit a
+calibrated-looking categorical distribution over local judgments: observation
+quality, whether to report, which neighbour to exchange with, or whether a
+reading should be quarantined. In a decentralized sensor network these local
+judgments are rarely the end product. A coordinator---often a short piece of
+deterministic logic shared by the team---compresses the joint of agent outputs
+into exchange decisions (who/what to exchange) or a quarantine safety
+valve~\citep{jevometry2026}.
 
-This compression is an information bottleneck. Classical decision theory
-and Dec-POMDP planning optimize rewards defined on beliefs or on
-prediction quality~\citep{lauri2020prediction,lauri2020decpomdp,oliehoek2016decpomdp}.
+This compression is an information bottleneck. Classical decision theory and
+Dec-POMDP planning optimize rewards defined on beliefs or on prediction
+quality~\citep{lauri2020prediction,lauri2020decpomdp,oliehoek2016decpomdp}.
 Information-theoretic multi-agent sensing maximizes mutual information or
 related set functions, often with submodular greedy
 guarantees~\citep{krause2008near,nemhauser1978analysis,corah2021scalable,shi2026imas2}.
 Those lines of work choose \emph{what to observe} or \emph{who should
 observe}. They do not, by themselves, tell a practitioner which of two
-already-deployed coordination rules retains more sensitivity to the
-parameters the agents were designed to track.
+already-deployed coordination rules retains more sensitivity to the global
+field or event parameters~$\theta$ the network was designed to track.
 
 Fisher information provides a local, differentiable language for that
 sensitivity~\citep{fisher1925theory,amari2016information}. For a
@@ -103,29 +109,52 @@ conditions~\citep{zamir1998fisherdpi,cover2006elements}. The scalar
 $\mathrm{tr}(I_Z-I_A)$ is then a comparable loss summary when $I_Z$ is held
 fixed.
 
+\paragraph{Target setting and current evidence.}
+Our primary narrative is decentralized sensor agents under local observations,
+using Fisher~$\Delta I$ as a shared decision function to choose among
+coordination rules---including quarantine when uncertain. The intended main
+experiment is a synthetic unit-disk field in 2D; a secondary control is the
+Intel Berkeley Lab (IBRL) subnet of motes~$9$--$16$. Those sensor experiments
+are forthcoming and are \emph{not} reported numerically here. What we
+\emph{do} report is a reproducible analytic instantiation of the same
+AggregationMap programme: the Jevometry three-agent cleaning council, whose
+tables and figures serve as a proof of concept for ranking
+\texttt{near}/\texttt{wider}/\texttt{baseline}/\texttt{stricter}/
+\texttt{quarantine\_*}/\texttt{near\_identity}-style rules by
+$\mathrm{tr}(\Delta)$.
+
 \paragraph{Contributions.}
 \begin{enumerate}
   \item We cast multi-agent coordination-rule comparison as ranking
   $\theta$-independent aggregation maps by Fisher information loss under a
-  shared declared joint (Section~\ref{sec:problem}).
-  \item We instantiate seven pure rules in the Jevometry cleaning council and
-  provide a reproducible harness that sweeps a parameter grid, exports
-  CSV/JSON (including parameter-axis loss diagonals and fractional losses),
-  and emits publication figures (Section~\ref{sec:method}).
+  shared declared joint, with sensor-network exchange and quarantine as the
+  motivating AggregationMap semantics (Section~\ref{sec:problem}).
+  \item We map the programme onto three layers---global field parameters
+  $\theta$, local agent categorical laws, and $\theta$-independent
+  AggregationMaps---and state the planned unit-disk main experiment and IBRL
+  control (Section~\ref{sec:sensor-layers}).
+  \item As a current analytic instantiation, we instantiate seven pure rules
+  in the Jevometry cleaning council and provide a reproducible harness that
+  sweeps a parameter grid, exports CSV/JSON (including parameter-axis loss
+  diagonals and fractional losses), and emits publication figures
+  (Section~\ref{sec:method}).
   \item Empirically, at the design centre the baseline rule loses about
   $44\%$ of $\mathrm{tr}(I_Z)$; quarantine-to-review cuts loss by roughly a
   quarter relative to baseline; a hybrid quarantine-wider rule improves
   further ($\mathrm{tr}(\Delta)\approx 2.16$) and dominates
   quarantine-to-review on the full grid; a binary gate loses more than
-  stricter mid-risk rejection (Section~\ref{sec:experiments}).
+  stricter mid-risk rejection (Section~\ref{sec:experiments}). These numbers
+  illustrate the AggregationMap audit; they are not unit-disk or IBRL results.
   \item We discuss how this metric complements reward-centric Dec-POMDP
-  evaluation and what API constraints (deterministic maps only) imply for
-  future learned coordinators (Section~\ref{sec:discussion}).
+  evaluation for sensor coordination and what API constraints (deterministic
+  maps only) imply for future learned coordinators
+  (Section~\ref{sec:discussion}).
 \end{enumerate}
 
 This manuscript is intended as a short journal / arXiv draft accompanying
-open-source experiments. It is not a claim about live cleaning quality; the
-agent families are analytic and illustrative.
+open-source experiments. Cleaning-council numbers are analytic and
+illustrative; sensor-field results will replace them as the primary empirical
+story once the unit-disk and IBRL harnesses land.
 
 \section{Related work}
 \label{sec:related}
@@ -147,7 +176,7 @@ $(1-1/e)$ guarantees under monotonicity~\citep{krause2008near,corah2021scalable}
 for mutual-information objectives in Dec-POMDPs. \citet{olkin2024vulcan}
 and \citet{molloy2023smoother} further connect planning to information and
 smoother entropy. Our setting is dual: agents and their local laws are
-\emph{fixed}; only the last-mile map to actions varies.
+\emph{fixed}; only the last-mile map to exchange or quarantine actions varies.
 
 \paragraph{Information geometry for agents.}
 Fisher--Rao geometry supplies local metrics on parametric families of
@@ -171,10 +200,13 @@ $\theta$:
   P_\theta(Z=z)=\prod_{i=1}^{m} P_\theta(Z_i=z_i),
   \qquad z=(z_1,\ldots,z_m)\in\mathcal{Z}=\prod_i\mathcal{Z}_i.
 \end{equation}
-In our cleaning example, $m=3$, $d=2$, and
+In the cleaning instantiation below, $m=3$, $d=2$, and
 $\theta=(\mathrm{evidence},\mathrm{ambiguity})$ with coordinates in
-$[0,1]$. The declaration is an assumption of the model, not an empirical
-claim about live APIs.
+$[0,1]$. In the planned sensor instantiation, $\theta$ instead denotes
+global field or event parameters (e.g., source location, intensity, or
+event indicators), not raw single-node readings. The product declaration is
+an assumption of the model, not an empirical claim about live APIs or radio
+traces.
 
 \subsection{Coordination as aggregation}
 
@@ -218,8 +250,8 @@ Maps that depend on $\theta$ (soft policies, learned routers conditioned on
 parameters) fall outside this guarantee in the Jevometry implementation and
 are reported as unsupported. This paper therefore restricts attention to
 pure, fully covering, $\theta$-independent rules---the class that matches
-typical production if-then coordinators and the library's AggregationMap
-contract.
+typical production if-then coordinators, mote firmware exchange policies, and
+the library's AggregationMap contract.
 \end{remark}
 
 \paragraph{Comparison principle.}
@@ -228,15 +260,62 @@ $\mathrm{tr}(\Delta_f)$ (lower is better) or equivalently by
 $\mathrm{tr}(I_A)$ (higher is better). Because $I_Z$ is shared, ranking by
 loss is identical to ranking by retained information.
 
+\section{Three layers for sensor-agent coordination}
+\label{sec:sensor-layers}
+
+The AggregationMap programme admits a three-layer reading that matches
+decentralized sensing:
+
+\begin{enumerate}
+  \item[(i)] \textbf{Global parameters $\theta$.}
+  $\theta$ denotes field- or event-level quantities of interest (source
+  location, intensity, spatial covariance hyperparameters, binary event
+  indicators), \emph{not} the raw scalar reading at a single mote. Fisher
+  loss is measured with respect to this $\theta$.
+
+  \item[(ii)] \textbf{Local agent laws.}
+  Each sensor is an agent. Its categorical distribution $P_\theta(Z_i)$ is
+  induced by local coordinates and local readings---for example, bins of
+  observation quality, a report/hold decision, or a neighbour-choice alphabet
+  under a unit-disk communication graph. The declared product joint assembles
+  these local laws.
+
+  \item[(iii)] \textbf{AggregationMap as exchange and quarantine.}
+  A $\theta$-independent rule $f$ compresses the joint into coordination
+  actions: who exchanges with whom, what payload to send, or whether to
+  quarantine a report when local uncertainty is high. Candidate families reuse
+  the same qualitative knobs studied below---near-neighbour exchange, wider
+  neighbourhoods, baseline firmware, stricter thresholds, quarantine variants,
+  and a near-identity upper bound---and are ranked by
+  $\mathrm{tr}(\Delta_f)=\mathrm{tr}(I_Z-I_A)$.
+\end{enumerate}
+
+\paragraph{Planned sensor experiments (no results yet).}
+\begin{itemize}
+  \item \textbf{Main (forthcoming):} synthetic unit-disk sensors in a 2D
+  field. Local alphabets and AggregationMaps will follow layers~(ii)--(iii);
+  tables and figures will report $\mathrm{tr}(\Delta)$ rankings once the
+  harness is complete. We deliberately omit fabricated unit-disk numbers.
+  \item \textbf{Control (forthcoming):} Intel Berkeley Lab (IBRL) subnet,
+  motes~$9$--$16$, as a real-deployment sanity check under the same
+  AggregationMap interface. Again, no IBRL numbers are claimed in this draft.
+\end{itemize}
+The cleaning-council study in Sections~\ref{sec:method}--\ref{sec:experiments}
+is the present, fully reproducible analytic illustration of layers~(i)--(iii)
+with $\theta=(\mathrm{evidence},\mathrm{ambiguity})$ and repair/quarantine
+actions standing in for exchange/quarantine semantics.
+
 \section{Method and experimental design}
 \label{sec:method}
 
-\subsection{Three-agent cleaning council}
+\subsection{Three-agent cleaning council
+(analytic instantiation)}
 
 We reuse the offline Jevometry tutorial
-\texttt{examples/three\_agent\_cleaning}~\citep{jevometry2026}. Three
-analytic softmax agents produce distributions for a single candidate repair
-of a noisy numeric field:
+\texttt{examples/three\_agent\_cleaning}~\citep{jevometry2026} as a
+proof-of-concept AggregationMap audit---not as a claim about live sensor
+fields. Three analytic softmax agents produce distributions for a single
+candidate repair of a noisy numeric field:
 
 \begin{center}
 \begin{tabular}{lll}
@@ -253,7 +332,11 @@ risk & Score & $\{0,1,2\}$ (low/med/high) \\
 Local logits are affine in $(\theta-\theta_0)$ around the design centre
 $\theta_0=(0.7,0.3)$, and probabilities are obtained by softmax. The joint
 is the declared product (ConstructionMode.DECLARED\_PRODUCT). No live API is
-queried; no actual database write is performed.
+queried; no actual database write is performed. Quarantine in this council
+plays the same structural role as a sensor quarantine valve: a coarse action
+that merges distinguishable joint outcomes and therefore inflates
+$\mathrm{tr}(\Delta_f)$ unless softened (e.g., into human review or delayed
+exchange).
 
 \subsection{Coordination rules}
 \label{sec:rules}
@@ -271,10 +354,15 @@ We compare seven rules, all pure and $\theta$-independent:
   \item[quarantine\_wider] Quarantine-to-review combined with wider's dual auto
   labels: the empirically strongest coarse policy in this study.
   \item[coarse\_binary] Reject under baseline reject conditions; otherwise a
-  single \texttt{proceed} action (auto-fix and review collapsed).
+  single \texttt{proceed} action (auto-apply and review collapsed).
   \item[near\_identity] One action label per joint outcome tuple (18 labels):
   Fisher retention upper bound under this alphabet.
 \end{description}
+
+In sensor language, baseline/stricter/wider correspond to narrower or broader
+exchange policies and risk thresholds; quarantine variants are safety valves;
+near-identity is an information-retention upper bound rather than a deployable
+radio schedule.
 
 \subsection{Harness}
 
@@ -294,7 +382,8 @@ additionally records the exact centre $\theta_0$. Outputs:
 \end{itemize}
 
 Library code under \texttt{src/jevometry} is unchanged; only example-level
-rules and scripts are extended.
+rules and scripts are extended. Unit-disk and IBRL harnesses will reuse the
+same AggregationMap and \texttt{information\_loss} interface once available.
 
 \section{Experiments}
 \label{sec:experiments}
@@ -316,7 +405,8 @@ a binary gate is worst among the listed rules ($\approx 3.71$).
 \begin{table}[t]
 \centering
 \caption{Fisher traces at centre $\theta_0=(0.7,0.3)$, sorted by ascending
-loss. $|A|$ is the number of actions with positive mass under the pushforward.}
+loss. $|A|$ is the number of actions with positive mass under the pushforward.
+Cleaning-council analytic illustration---not unit-disk or IBRL.}
 \label{tab:center}
 \begin{tabular}{lrrrrl}
 \toprule
@@ -356,7 +446,8 @@ story.
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/fig_loss_center.pdf}
-\caption{Information loss $\mathrm{tr}(I_Z-I_A)$ by rule at the design centre.}
+\caption{Information loss $\mathrm{tr}(I_Z-I_A)$ by rule at the design centre
+(cleaning-council illustration).}
 \label{fig:center}
 \end{figure}
 
@@ -373,14 +464,16 @@ at zero, while coarse binary and stricter remain the most lossy.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_loss_heatmap.pdf}
-\caption{Loss heatmaps over evidence$\times$ambiguity for five coordination rules.}
+\caption{Loss heatmaps over evidence$\times$ambiguity for five coordination rules
+(cleaning-council illustration).}
 \label{fig:heat}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/fig_loss_curves.pdf}
-\caption{Loss versus evidence at fixed ambiguity near $0.3$.}
+\caption{Loss versus evidence at fixed ambiguity near $0.3$
+(cleaning-council illustration).}
 \label{fig:curves}
 \end{figure}
 
@@ -389,15 +482,17 @@ at zero, while coarse binary and stricter remain the most lossy.
 Figure~\ref{fig:masses} shows how probability mass is partitioned at the
 centre. Stricter reallocates medium-risk mass into reject. Wider splits
 auto-apply into normalize versus impute. Quarantine-to-review shrinks reject
-in favour of human review. Coarse binary folds auto-fix and review into
+in favour of human review. Coarse binary folds auto-apply and review into
 \texttt{proceed}. These mass shifts are the mechanism behind Fisher loss:
 merging outcomes with dissimilar score rows collapses distinguishable
-parameter directions.
+parameter directions---the same mechanism AggregationMaps will exhibit when
+merging exchange or quarantine fibres in a sensor field.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\linewidth]{figures/fig_action_masses.pdf}
-\caption{Pushforward action probabilities at the centre for non-identity rules.}
+\caption{Pushforward action probabilities at the centre for non-identity rules
+(cleaning-council illustration).}
 \label{fig:masses}
 \end{figure}
 
@@ -424,30 +519,42 @@ had merged.
 \centering
 \includegraphics[width=0.9\linewidth]{figures/fig_frac_loss_heatmap.png}
 \caption{Fractional loss $\mathrm{tr}(\Delta)/\mathrm{tr}(I_Z)$ over the
-evidence$\times$ambiguity grid for non-identity rules.}
+evidence$\times$ambiguity grid for non-identity rules
+(cleaning-council illustration).}
 \label{fig:frac}
 \end{figure}
 
 \section{Discussion}
 \label{sec:discussion}
 
+\paragraph{Sensor-network reading.}
+Under layers~(i)--(iii), $\mathrm{tr}(\Delta_f)$ is a shared offline score for
+choosing among exchange and quarantine rules when local agent laws are held
+fixed. Softer quarantine (delay or human/operator review instead of hard drop)
+and finer exchange alphabets (distinct neighbour or payload labels) are the
+direct analogues of the quarantine-wider gains in Table~\ref{tab:center}.
+Binary proceed/reject gates remain operationally convenient but
+informationally costly. Until unit-disk and IBRL numbers are available, the
+cleaning council supplies only qualitative guidance: the ranking machinery and
+DPI certificate transfer; the absolute traces need not.
+
 \paragraph{What ``half the Fisher'' means.}
 A $44\%$ drop in $\mathrm{tr}(I_Z)$ after baseline coordination does not mean
 the system is $44\%$ ``wrong.'' It means that, locally, infinitesimal changes
-in evidence and ambiguity move the final action distribution less than they
-move the joint of agent outputs. If a monitoring dashboard only watches
-action rates, it understates how sensitive the underlying council is. If a
+in the parameters move the final action distribution less than they move the
+joint of agent outputs. If a monitoring dashboard only watches action or
+exchange rates, it understates how sensitive the underlying agents are. If a
 downstream estimator tries to invert actions for $\theta$, it faces a strictly
 harder problem than inverting $Z$.
 
 \paragraph{Design takeaway.}
-Among implementable three/four-action policies, routing quarantine to review
-retained more Fisher than baseline or wider alone; combining that softening
-with distinct auto-normalize/auto-impute labels is strictly better still on
-this grid. Binary proceed/reject gates are convenient operationally but costly
-informationally. Practitioners can treat $\mathrm{tr}(\Delta_f)$---and, when
-needed, its parameter-axis diagonals---as a cheap offline score when debating
-rule changes before A/B tests.
+Among implementable three/four-action policies in the cleaning illustration,
+routing quarantine to review retained more Fisher than baseline or wider alone;
+combining that softening with distinct auto-normalize/auto-impute labels is
+strictly better still on this grid. Practitioners can treat
+$\mathrm{tr}(\Delta_f)$---and, when needed, its parameter-axis diagonals---as a
+cheap offline score when debating rule changes before A/B tests or firmware
+flashes.
 
 \paragraph{Relation to Dec-POMDP rewards.}
 Prediction rewards and negative-entropy objectives~\citep{lauri2020prediction,lauri2020decpomdp}
@@ -455,50 +562,60 @@ optimize perception policies. Our metric does not replace them; it audits the
 \emph{last} deterministic compression after perception is fixed. In that sense
 it is complementary to IMAS$^2$-style joint selection~\citep{shi2026imas2}:
 selection expands who may observe; coordination ranking asks how much of that
-observation survives the action layer.
+observation survives the exchange/quarantine layer.
 
 \paragraph{API constraints.}
-Many agent platforms expose only sampled outcomes plus deterministic business
-rules. Soft, $\theta$-dependent routers would require either a declared
-conditional action model or a refusal of the DPI certificate---exactly the
-contract encoded by Jevometry's AggregationMap. Extending the present study to
-stochastic coordinators is future work and needs additional regularity.
+Many agent and mote platforms expose only sampled outcomes plus deterministic
+business or firmware rules. Soft, $\theta$-dependent routers would require
+either a declared conditional action model or a refusal of the DPI
+certificate---exactly the contract encoded by Jevometry's AggregationMap.
+Extending the present study to stochastic coordinators is future work and needs
+additional regularity.
 
 \section{Limitations}
 \label{sec:limitations}
 
 \begin{itemize}
-  \item Agent distributions are hand-specified analytic softmax families, not
-  fitted live decision models. Absolute numbers are illustrative.
+  \item The reported empirical numbers come from hand-specified analytic
+  softmax families in the cleaning council, not from fitted live decision
+  models, unit-disk fields, or IBRL traces. Absolute traces are illustrative.
+  \item Synthetic unit-disk (main) and IBRL motes~$9$--$16$ (control) sensor
+  experiments are forthcoming; this draft contains no fabricated results for
+  either.
   \item Conditional independence is declared, not tested.
   \item We report parameter-axis diagonals and eigenvalues of $\Delta_f$, but
   full CRLB-style reads would still need an observation likelihood contract
-  this example does not provide.
+  the cleaning example does not provide.
   \item Action alphabets differ across rules; $\mathrm{tr}(I_A)$ comparisons
   remain meaningful as retained information about $\theta$, but
   interpretations that treat $|A|$ as utility are out of scope.
-  \item No human or task reward study validates that lower Fisher loss improves
-  cleaning outcomes.
+  \item No human, task-reward, or sensing-accuracy study yet validates that
+  lower Fisher loss improves cleaning or field-estimation outcomes.
 \end{itemize}
 
 \section{Conclusion}
 \label{sec:conclusion}
 
 We proposed ranking multi-agent coordination rules by Fisher information loss
-under a shared declared joint and demonstrated the approach on a reproducible
-three-agent cleaning council. Holding perception fixed, deterministic
-coordinators can discard on the order of half the joint Fisher trace; small
-rule edits (quarantine handling, auto-path splitting, risk thresholds) and
-their combinations move that loss by amounts that are easy to measure offline,
-including along individual parameter axes. The accompanying harness and
-figures are intended as a template for auditing production if-then councils
-before changing live traffic.
+under a shared declared joint, with decentralized sensor-agent exchange and
+quarantine as the primary AggregationMap story. Holding local perception
+fixed, deterministic coordinators can discard a large fraction of the joint
+Fisher trace; small rule edits (quarantine handling, finer action alphabets,
+risk or neighbourhood thresholds) move that loss by amounts that are easy to
+measure offline. The three-agent cleaning council provides a reproducible
+analytic proof of concept---including the stable ordering
+$\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
+\le\mathrm{stricter}$
+and the quarantine-wider gains---while synthetic unit-disk and IBRL
+motes~$9$--$16$ experiments remain the intended main and control empirical
+pillars once implemented.
 
-Future work includes (i) replacing analytic agents with TypeSafe / live
-decision-model Jacobians under the same AggregationMap interface, (ii)
-stochastic coordinators with explicit conditional action models, and (iii)
-coupling $\mathrm{tr}(\Delta_f)$ with task-level utilities in JAAMAS-style
-empirical studies.
+Future work includes (i)~completing the unit-disk main experiment and IBRL
+control under the same AggregationMap interface, (ii)~replacing analytic
+agents with TypeSafe / live decision-model Jacobians where appropriate,
+(iii)~stochastic coordinators with explicit conditional action models, and
+(iv)~coupling $\mathrm{tr}(\Delta_f)$ with task-level utilities (field
+estimation error, cleaning quality) in JAAMAS-style empirical studies.
 
 \section*{Reproducibility}
 
@@ -510,7 +627,9 @@ uv run python examples/three_agent_cleaning/compare_rules.py
 uv run python examples/three_agent_cleaning/paper_experiments.py
 \end{verbatim}
 Artefacts land in \texttt{papers/coord-fisher/data} and
-\texttt{figures/}. This PDF was built with Tectonic from
+\texttt{figures/}. Cleaning-council tables and figures in this PDF are the
+current analytic illustration; unit-disk and IBRL harnesses are forthcoming.
+This PDF was built with pdflatex from
 \texttt{papers/coord-fisher/main.tex}.
 
 \bibliographystyle{plainnat}
