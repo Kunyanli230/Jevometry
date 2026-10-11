@@ -9,6 +9,7 @@ Usage (from repo root):
     uv run python examples/jev_ticket_sensitivity/run.py
     # optional, needs TYPESAFE_API_KEY + TYPESAFE_MODEL:
     uv run python examples/jev_ticket_sensitivity/run.py --live
+    uv run python examples/jev_ticket_sensitivity/compare_surrogate_rules.py
     uv run python examples/jev_ticket_sensitivity/paper_export.py
 """
 
@@ -221,6 +222,119 @@ def fig_stability_before_after() -> None:
     plt.close(fig)
 
 
+RULE_ORDER = ("near_identity", "baseline", "stricter", "coarse_binary")
+GRID_CSV = DATA / "surrogate_rule_loss_grid.csv"
+
+
+def _load_surrogate_grid(path: Path = GRID_CSV) -> list[dict]:
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Missing {path}. Run examples/jev_ticket_sensitivity/compare_surrogate_rules.py first."
+        )
+    with path.open(newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _surrogate_center_rows(rows: list[dict]) -> list[dict]:
+    return [
+        row
+        for row in rows
+        if float(row["amount"]) == CENTER["amount"]
+        and float(row["wait_hours"]) == CENTER["wait_hours"]
+    ]
+
+
+def fig_surrogate_rule_center_bar(center_rows: list[dict]) -> None:
+    by_rule = {row["rule"]: row for row in center_rows}
+    losses = [float(by_rule[name]["tr_loss"]) for name in RULE_ORDER]
+    fig, ax = plt.subplots(figsize=(6.2, 3.6))
+    ax.bar(range(len(RULE_ORDER)), losses, color=["#4c72b0", "#55a868", "#c44e52", "#8172b3"])
+    ax.set_xticks(range(len(RULE_ORDER)))
+    ax.set_xticklabels(list(RULE_ORDER), rotation=15, ha="right")
+    ax.set_ylabel(r"$\mathrm{tr}(I_Z - I_A)$")
+    ax.set_title(r"Surrogate rule information loss at $(250, 8)$")
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(FIGS / "surrogate_rule_center_bar.pdf")
+    fig.savefig(FIGS / "surrogate_rule_center_bar.png", dpi=160)
+    plt.close(fig)
+
+
+def fig_surrogate_rule_loss_heatmap(rows: list[dict]) -> None:
+    rules = list(RULE_ORDER)
+    amounts = sorted({float(row["amount"]) for row in rows})
+    waits = sorted({float(row["wait_hours"]) for row in rows})
+    fig, axes = plt.subplots(1, len(rules), figsize=(11.5, 3.4), sharey=True)
+    for ax, rule in zip(axes, rules):
+        grid = np.full((len(waits), len(amounts)), np.nan)
+        for row in rows:
+            if row["rule"] != rule or row["status"] != "ok":
+                continue
+            i = waits.index(float(row["wait_hours"]))
+            j = amounts.index(float(row["amount"]))
+            grid[i, j] = float(row["tr_loss"])
+        im = ax.imshow(grid, origin="lower", aspect="auto", cmap="magma")
+        ax.set_xticks(range(len(amounts)))
+        ax.set_xticklabels([f"{value:g}" for value in amounts])
+        ax.set_yticks(range(len(waits)))
+        ax.set_yticklabels([f"{value:g}" for value in waits])
+        ax.set_xlabel("amount")
+        if rule == rules[0]:
+            ax.set_ylabel("wait_hours")
+        ax.set_title(rule)
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    fig.suptitle(r"Surrogate $\mathrm{tr}(I_Z-I_A)$ on the 3×3 grid")
+    fig.tight_layout()
+    fig.savefig(FIGS / "surrogate_rule_loss_heatmap.pdf")
+    fig.savefig(FIGS / "surrogate_rule_loss_heatmap.png", dpi=160)
+    plt.close(fig)
+
+
+def export_surrogate_rule_figures() -> dict:
+    rows = _load_surrogate_grid()
+    center_rows = _surrogate_center_rows(rows)
+    fig_surrogate_rule_center_bar(center_rows)
+    fig_surrogate_rule_loss_heatmap(rows)
+    by_rule = {row["rule"]: row for row in center_rows}
+    order_losses = [float(by_rule[name]["tr_loss"]) for name in RULE_ORDER]
+    order_holds = all(
+        order_losses[index] <= order_losses[index + 1] + 1e-12
+        for index in range(len(order_losses) - 1)
+    )
+    ok_points = {
+        (float(row["amount"]), float(row["wait_hours"]))
+        for row in rows
+        if row["status"] == "ok"
+    }
+    all_points = {(float(row["amount"]), float(row["wait_hours"])) for row in rows}
+    summary = {
+        "center": CENTER,
+        "rule_order": list(RULE_ORDER),
+        "center_tr_Iz": float(by_rule["near_identity"]["tr_Iz"]),
+        "center_losses": {
+            name: {
+                "tr_Iz": float(by_rule[name]["tr_Iz"]),
+                "tr_Ia": float(by_rule[name]["tr_Ia"]),
+                "tr_loss": float(by_rule[name]["tr_loss"]),
+                "status": by_rule[name]["status"],
+            }
+            for name in RULE_ORDER
+        },
+        "center_order_holds": order_holds,
+        "grid_ok_points": len(ok_points),
+        "grid_points": len(all_points),
+        "source_csv": str(GRID_CSV.relative_to(ROOT)),
+        "figures": [
+            "figures/surrogate_rule_center_bar.pdf",
+            "figures/surrogate_rule_loss_heatmap.pdf",
+        ],
+    }
+    (DATA / "surrogate_rule_center_summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n"
+    )
+    return summary
+
+
 def main() -> int:
     DATA.mkdir(parents=True, exist_ok=True)
     FIGS.mkdir(parents=True, exist_ok=True)
@@ -282,9 +396,19 @@ def main() -> int:
     fig_fisher_diag(live_center)
     fig_synth_grid(syn_rows)
     fig_stability_before_after()
+    surrogate_summary = export_surrogate_rule_figures()
 
     print("wrote", DATA)
     print("wrote", FIGS)
+    print(
+        "surrogate center tr(I_Z)=%.6g order_holds=%s ok=%s/%s"
+        % (
+            surrogate_summary["center_tr_Iz"],
+            surrogate_summary["center_order_holds"],
+            surrogate_summary["grid_ok_points"],
+            surrogate_summary["grid_points"],
+        )
+    )
     for r in live_center:
         print(
             f"  live {r['node']:18s} H={r['entropy_nats']:.4f} "

@@ -1,0 +1,47 @@
+{
+  "center": {
+    "amount": 250.0,
+    "wait_hours": 8.0
+  },
+  "rule_order": [
+    "near_identity",
+    "baseline",
+    "stricter",
+    "coarse_binary"
+  ],
+  "center_tr_Iz": 0.1380154458554316,
+  "center_losses": {
+    "near_identity": {
+      "tr_Iz": 0.1380154458554316,
+      "tr_Ia": 0.13801544585543166,
+      "tr_loss": -5.5402731014009277e-17,
+      "status": "ok"
+    },
+    "baseline": {
+      "tr_Iz": 0.1380154458554316,
+      "tr_Ia": 0.05232183241722866,
+      "tr_loss": 0.08569361343820293,
+      "status": "ok"
+    },
+    "stricter": {
+      "tr_Iz": 0.1380154458554316,
+      "tr_Ia": 0.05188020286311908,
+      "tr_loss": 0.08613524299231251,
+      "status": "ok"
+    },
+    "coarse_binary": {
+      "tr_Iz": 0.1380154458554316,
+      "tr_Ia": 0.04753450302594886,
+      "tr_loss": 0.09048094282948274,
+      "status": "ok"
+    }
+  },
+  "center_order_holds": true,
+  "grid_ok_points": 9,
+  "grid_points": 9,
+  "source_csv": "papers/typesafe-ticket/data/surrogate_rule_loss_grid.csv",
+  "figures": [
+    "figures/surrogate_rule_center_bar.pdf",
+    "figures/surrogate_rule_loss_heatmap.pdf"
+  ]
+}
