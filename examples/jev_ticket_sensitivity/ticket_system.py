@@ -59,7 +59,14 @@ def renderer() -> StructuredRenderer:
 LOGIT_SCALE = 40.0
 
 
+
 def _logits(amount: float, wait: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Softmax/logit scores scaled by LOGIT_SCALE.
+
+    ParameterSpec uses raw amount/wait units, so unscaled slopes yield tiny Fisher
+    traces; LOGIT_SCALE (default 40) restores usable curvature without changing the
+    qualitative dependence on amount and wait_hours.
+    """
     scaled_amount = amount / 500.0
     scaled_wait = wait / 24.0
     request = LOGIT_SCALE * np.asarray(
