@@ -110,3 +110,15 @@ def test_quarantine_wider_centre_loss_leq_quarantine_review() -> None:
     by = {str(row["rule"]): float(row["tr_loss"]) for row in rows}
     assert "quarantine_wider" in by
     assert by["quarantine_wider"] <= by["quarantine_review"] + 1e-12
+
+
+def test_quarantine_wider_vs_review_json() -> None:
+    import json
+
+    path = REPO / "papers" / "coord-fisher" / "data" / "quarantine_wider_vs_review.json"
+    assert path.is_file()
+    summary = json.loads(path.read_text())
+    assert summary["predicate"] == "quarantine_wider <= quarantine_review"
+    assert summary["hold"] == summary["grid_points"]
+    assert summary["hold_ratio"] == 1.0
+    assert summary["fail"] == 0

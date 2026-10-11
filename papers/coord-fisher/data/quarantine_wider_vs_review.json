@@ -1,0 +1,12 @@
+{
+  "metric": "tr_loss",
+  "predicate": "quarantine_wider <= quarantine_review",
+  "grid_points": 65,
+  "hold": 65,
+  "hold_ratio": 1.0,
+  "strict_less": 65,
+  "ties": 0,
+  "fail": 0,
+  "source_csv": "papers/coord-fisher/data/rule_loss_grid.csv",
+  "failures": []
+}
