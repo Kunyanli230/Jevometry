@@ -68,3 +68,30 @@ def test_rule_loss_anisotropy_grid_near_psd_and_core_order() -> None:
     # Centre may not sit exactly on the linspace; require hold>=1 overall.
     assert int(stats["hold"]) >= 1
     assert float(stats["ratio"]) > 0.0
+
+
+def test_frac_loss_fields_and_quarantine_lowest_at_centre() -> None:
+    import importlib.util
+
+    script = EXAMPLE / "export_rule_loss_anisotropy_grid.py"
+    spec = importlib.util.spec_from_file_location("export_rule_loss_anisotropy_grid", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    rows = module.evaluate()
+    sample = next(row for row in rows if row["status"] == "ok")
+    assert "frac_loss" in sample and "frac_delta_ambiguity" in sample
+    # nearest grid point to design centre
+    from system import CENTER
+
+    best = min(
+        {(float(row["evidence"]), float(row["ambiguity"])) for row in rows},
+        key=lambda point: (point[0] - float(CENTER[0])) ** 2 + (point[1] - float(CENTER[1])) ** 2,
+    )
+    centre = [
+        row
+        for row in rows
+        if (float(row["evidence"]), float(row["ambiguity"])) == best and row["rule"] != "near_identity"
+    ]
+    fracs = {str(row["rule"]): float(row["frac_loss"]) for row in centre}
+    assert fracs["quarantine_review"] == min(fracs.values())
