@@ -75,6 +75,13 @@
       "sensor_range": "large",
       "spearman_dI_vs_entropy": 0.8928571428571429,
       "spearman_dI_vs_neg_accuracy": 0.8468812149338255
+    },
+    {
+      "policy_type": "retrained_imas2",
+      "dynamics": "stochastic",
+      "sensor_range": "small",
+      "spearman_dI_vs_entropy": 0.8928571428571429,
+      "spearman_dI_vs_neg_accuracy": 0.8728715609439697
     }
   ],
   "placements": {
@@ -116,8 +123,8 @@
         "mi_rank": 1
       },
       "selection_time_s": {
-        "fisher_all_126": 3.7593138217926025,
-        "mi_mc_all_126": 53.138330936431885
+        "fisher_all_126": 3.642832040786743,
+        "mi_mc_all_126": 52.78379821777344
       },
       "training_time_s": 0.0,
       "mi_estimator": "Monte-Carlo 1 - mean H(tau|y), M=500, seed=1, near_identity fusion",
@@ -161,15 +168,41 @@
         "mi_rank": 2
       },
       "selection_time_s": {
-        "fisher_all_126": 4.58206033706665,
-        "mi_mc_all_126": 52.679489612579346
+        "fisher_all_126": 4.435488939285278,
+        "mi_mc_all_126": 52.327940464019775
       },
       "training_time_s": 0.0,
       "mi_estimator": "Monte-Carlo 1 - mean H(tau|y), M=500, seed=1, near_identity fusion",
       "fisher_estimator": "\u03a3_t tr I_Z(\u03b8=(prior_logit,slip)) of 5-sensor categorical report"
     }
   },
-  "retrained_imas2": "not available (see blockers)",
+  "retrained_imas2": {
+    "order_primary_first": [
+      3,
+      4,
+      2,
+      8,
+      6
+    ],
+    "iters": 150,
+    "M": 100,
+    "T": 15,
+    "training_time_s": {
+      "4": 359.6145808696747,
+      "2": 284.3977384567261,
+      "8": 284.25654196739197,
+      "6": 349.92506313323975,
+      "3": 772.8216536045074
+    },
+    "rollout_time_s": 8.837278127670288,
+    "final_entropy_last50": [
+      0.9136140158422357,
+      0.802686706296018,
+      0.6727555225454386,
+      0.5860948908759994,
+      0.5582774134073809
+    ]
+  },
   "reported_imas2": {
     "source": "AAMAS_2026.pdf in upstream repo / arXiv:2510.20009 (REPORTED, not rerun)",
     "selected_sensors_det_small": [

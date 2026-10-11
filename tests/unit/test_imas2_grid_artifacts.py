@@ -64,3 +64,12 @@ def test_vectorised_emission_matches_upstream() -> None:
                 assert in_range == bool(cov[model.idx[cell]])
                 p_null = pomdp.emiss_list[k][(cell, 0)][act][("n", model.env.sensors[k])]
                 assert np.isclose(p_null, S.OBS_NOISE if in_range else 1.0)
+
+
+def test_retrained_rows_when_rollouts_present() -> None:
+    if not (DATA / "imas2_retrain_rollouts.json").is_file():
+        return
+    rows = [r for r in csv.DictReader((DATA / "imas2_rule_comparison.csv").open(encoding="utf-8"))
+            if r["policy_type"] == "retrained_imas2"]
+    assert len(rows) == 7
+    assert all(float(r["training_time_s"]) > 0 for r in rows)

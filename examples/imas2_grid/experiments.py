@@ -25,7 +25,7 @@ DATA = ROOT / "papers" / "coord-fisher" / "data"
 SEED = 0
 N_TRAJ = 500
 N_RANDOM_ACTS = 8
-RETRAIN_JSON = Path("/tmp/imas2-run/retrain_rollouts.json")
+RETRAIN_JSON = DATA / "imas2_retrain_rollouts.json"  # from retrain_upstream.py (torch venv)
 MAIN_FIELDS = ["rule", "policy_type", "dynamics", "sensor_range", "tr_delta_I", "cond_entropy",
                "accuracy", "seed", "n_trajectories", "selection_time_s", "training_time_s", "tr_I_Z", "status"]
 
