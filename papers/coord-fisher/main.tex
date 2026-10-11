@@ -60,7 +60,9 @@ motes) the core order holds and quarantine-wider is the lowest-loss
 non-trivial rule; on a $12$-mote Intel Berkeley Lab (IBRL) real-data control
 the core order also holds, but both quarantine rules lose more than baseline,
 so the quarantine safety valve pays an information cost and the full ranking
-is data-dependent. As a reproducible analytic illustration of the
+is data-dependent. On the IMAS$^2$ grid-world benchmark with fixed sensors,
+the Fisher-loss ranking of fusion rules tracks conditional entropy and
+accuracy, while Fisher~$\Delta I$ proves a weak sensor-placement criterion. As a reproducible analytic illustration of the
 same AggregationMap programme, we also use the Jevometry three-agent data-cleaning
 council (applicability, repair, risk) and compare seven pure rules---baseline,
 stricter, wider, quarantine-to-review, a hybrid quarantine-wider split,
@@ -138,6 +140,11 @@ $\mathrm{tr}(\Delta)$.
   and~\ref{sec:sensor-results}). The core order holds on both; quarantine-wider
   is best on unit-disk ($1.784$), whereas on IBRL both quarantine rules lose
   more than baseline ($3.042$, $3.101$ vs.\ $2.785$).
+  \item On the IMAS$^2$ grid world with fixed sensors, the $\mathrm{tr}\Delta I$
+  ranking of fusion rules has Spearman $0.65$--$0.93$ with conditional entropy
+  and $0.51$--$0.87$ with negative accuracy; as a sensor-placement criterion
+  Fisher~$\Delta I$ is weak and fails under stochastic motion, a negative
+  finding we report as such (Section~\ref{sec:imas2-grid}).
   \item As a current analytic instantiation, we instantiate seven pure rules
   in the Jevometry cleaning council and provide a reproducible harness that
   sweeps a parameter grid, exports CSV/JSON (including parameter-axis loss
@@ -621,6 +628,140 @@ order. On IBRL, \texttt{wider}, \texttt{baseline}, and
 \texttt{coarse\_binary} are nearly tied ($2.78$--$2.80$), so these three rules
 are practically indistinguishable by this metric on that subnet.
 
+\section{Comparison on the IMAS$^2$ grid-world benchmark}
+\label{sec:imas2-grid}
+
+\paragraph{Setup.}
+We reuse the grid world released with IMAS$^2$~\citep{shi2026imas2}
+(upstream repository \texttt{AronYoung414/multi-agent-active-perception-grid-world},
+MIT licence, commit \texttt{0eae156}; \texttt{grid\_world\_example.py} and
+\texttt{pomdp\_grid.py} are vendored unchanged under
+\texttt{third\_party/imas2\_grid/}). The world is a $10\times10$ grid with $12$
+obstacles and $9$ candidate sensors. We fix the sensor set to the placement
+reported by IMAS$^2$, sensors $2,3,4,6,8$. The parameter is
+$\theta=(\mathrm{logit}\ \text{of the adversarial prior},\ \text{slip probability})$.
+Each sensor emits a $\theta$-independent adversarial/nominal/uncertain label,
+and the seven AggregationMaps fuse the five labels. Every rule is evaluated on
+the same $500$ trajectories (seed $0$, horizon $14$ sensing steps) with an
+exact Bayes (HMM forward) filter on the fused labels, reporting the
+conditional entropy $H$ of the agent type and MAP accuracy.
+
+\paragraph{Main result: auditing the aggregation layer with fixed sensors.}
+This experiment does not select sensors; it audits the fusion rule applied
+on top of a fixed sensor set. Table~\ref{tab:imas2-main} gives the stochastic,
+small-range configuration; Table~\ref{tab:imas2-all} gives
+$\mathrm{tr}\Delta I$ for all eight fixed/random-orientation configurations.
+Across all nine configurations (including the retrained-policy rows), the
+Spearman correlation between the $\mathrm{tr}\Delta I$ ranking and conditional
+entropy ranges from $0.65$ to $0.93$, and with negative accuracy from $0.51$
+to $0.87$ (Table~\ref{tab:imas2-spearman}). Lower Fisher loss thus tracks
+better downstream inference, though not perfectly. As on IBRL, both
+quarantine rules lose more than baseline in every configuration: most cells
+are labelled ``uncertain'' at the working point, so quarantining them discards
+information rather than protecting it.
+
+\begin{table}[t]
+\centering
+\caption{IMAS$^2$ grid world, stochastic dynamics, small range, sensors 2-3-4-6-8. Left: fixed orientations; right: reduced retrained IMAS$^2$ policies (150 iterations/sensor). $H$ = conditional entropy of the type, Acc = MAP accuracy; 500 trajectories, seed 0.}
+\label{tab:imas2-main}
+\begin{tabular}{lrrrrrr}
+\toprule
+Rule & $\mathrm{tr}\Delta I$ & $H$ & Acc & $\mathrm{tr}\Delta I$ & $H$ & Acc \\
+\midrule
+\texttt{near\_identity} & 0.0 & 0.543 & 0.824 & 0.0 & 0.557 & 0.828 \\
+\texttt{wider} & 115.4 & 0.676 & 0.768 & 92.3 & 0.677 & 0.750 \\
+\texttt{baseline} & 118.6 & 0.675 & 0.770 & 93.4 & 0.685 & 0.750 \\
+\texttt{stricter} & 138.7 & 0.687 & 0.768 & 113.9 & 0.704 & 0.742 \\
+\texttt{quarantine\_review} & 140.9 & 0.809 & 0.736 & 137.8 & 0.791 & 0.718 \\
+\texttt{quarantine\_wider} & 137.7 & 0.809 & 0.736 & 136.7 & 0.790 & 0.718 \\
+\texttt{coarse\_binary} & 152.7 & 0.883 & 0.608 & 122.8 & 0.895 & 0.620 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{$\mathrm{tr}\Delta I$ for every orientation policy (F = fixed, R = random) $\times$ dynamics (D/S) $\times$ range (S/L) configuration.}
+\label{tab:imas2-all}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Rule & F-D-S & F-D-L & F-S-S & F-S-L & R-D-S & R-D-L & R-S-S & R-S-L \\
+\midrule
+\texttt{near\_identity} & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+\texttt{wider} & 42.0 & 212.6 & 115.4 & 136.5 & 21.3 & 134.3 & 82.1 & 149.3 \\
+\texttt{baseline} & 42.0 & 221.7 & 118.6 & 145.5 & 21.4 & 136.2 & 82.7 & 151.9 \\
+\texttt{stricter} & 98.3 & 253.5 & 138.7 & 150.1 & 46.4 & 169.4 & 96.7 & 164.5 \\
+\texttt{quarantine\_review} & 89.3 & 292.1 & 140.9 & 287.3 & 56.8 & 204.0 & 129.7 & 224.0 \\
+\texttt{quarantine\_wider} & 89.3 & 283.0 & 137.7 & 278.4 & 56.7 & 202.2 & 129.1 & 221.4 \\
+\texttt{coarse\_binary} & 63.8 & 277.4 & 152.7 & 180.8 & 42.8 & 176.2 & 108.8 & 181.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Spearman correlation of the seven-rule $\mathrm{tr}\Delta I$ ranking with conditional entropy and with negative accuracy, per configuration.}
+\label{tab:imas2-spearman}
+\begin{tabular}{lrr}
+\toprule
+Config & $\rho(\Delta I,H)$ & $\rho(\Delta I,-\mathrm{Acc})$ \\
+\midrule
+F-D-S & 0.66 & 0.51 \\
+F-D-L & 0.82 & 0.84 \\
+F-S-S & 0.93 & 0.85 \\
+F-S-L & 0.89 & 0.86 \\
+R-D-S & 0.65 & 0.69 \\
+R-D-L & 0.82 & 0.55 \\
+R-S-S & 0.86 & 0.84 \\
+R-S-L & 0.89 & 0.85 \\
+IMAS$^2$-retrained-S-S & 0.89 & 0.87 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Secondary: sensor placement (a negative finding).}
+We also asked whether $\sum_t\mathrm{tr}\,I_Z$ could act as a placement
+criterion, scoring all $126$ five-of-nine placements against a Monte-Carlo
+MI estimate (Table~\ref{tab:imas2-place}). It cannot be recommended. Under
+deterministic dynamics the Spearman correlation with MI is $0.60$ and the
+top-5 sets share a single placement; under stochastic dynamics the
+correlation is $-0.15$ and the top-5 sets are disjoint. Fisher ranks
+the IMAS$^2$ placement $13$th (deterministic) and $54$th (stochastic). MI
+enumeration, by contrast, recovers 2-3-4-6-8 as the top placement under
+deterministic dynamics (and second under stochastic dynamics), which
+cross-checks our harness against IMAS$^2$. Fisher scoring is faster
+($3.6$\,s and $4.4$\,s vs.\ $52.8$\,s and $52.3$\,s for MI), but a fast
+criterion that picks the wrong sensors is not useful, and we do not count
+speed in its favour. Fisher~$\Delta I$ is a weak placement criterion and
+essentially fails under stochastic motion. Our contribution is auditing
+coordination and aggregation rules, not sensor selection.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{Fisher vs.\ MI over all 126 five-sensor placements (small range, fixed orientations). Ranks are of the IMAS$^2$-reported placement 2-3-4-6-8; times in seconds for scoring all 126.}
+\label{tab:imas2-place}
+\begin{tabular}{lrrrllrrrr}
+\toprule
+Dyn. & $n$ & $\rho$ & top-5 & Fisher top-1 & MI top-1 & F-rank & MI-rank & $t_F$ & $t_{MI}$ \\
+\midrule
+deterministic & 126 & $0.60$ & 1 & 2-4-5-6-8 & 2-3-4-6-8 & 13 & 1 & 3.6 & 52.8 \\
+stochastic & 126 & $-0.15$ & 0 & 0-2-3-6-7 & 1-2-4-6-8 & 54 & 2 & 4.4 & 52.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{IMAS$^2$ baseline.}
+We re-ran the upstream IMAS$^2$ training in reduced form: $150$ iterations per
+sensor (the paper uses $1000$), in the reported sensor order, taking
+$2051$\,s in total; the training entropy after five sensors is
+$0.558$. Separately, \citet{shi2026imas2} report conditional entropy
+$0.493$ and accuracy $86.0\%$ for IMAS$^2$ in their stochastic, large-range
+setting. These reported numbers are not directly comparable with our reduced
+re-run (different iteration budget, range, and evaluator). The full pipeline
+on CPU is estimated at over $12$ hours and was not run.
+
 \section{Discussion}
 \label{sec:discussion}
 
@@ -684,6 +825,13 @@ additional regularity.
   $12$-mote, $480$-row IBRL subsample at a single centre point. The
   quarantine ranking flips between them, so rankings beyond the core order
   are data-dependent and should not be read as universal.
+  \item On the IMAS$^2$ grid world, $\mathrm{tr}\Delta I$ sums per-step Fisher
+  information and ignores temporal correlation across steps.
+  \item Under deterministic dynamics the slip derivative is a one-sided finite
+  difference at the boundary slip $=0$.
+  \item The retrained-policy rows replay recorded states and actions and
+  resample observations in our evaluator; they are not fully Bayes-consistent
+  with the upstream training rollouts.
   \item Conditional independence is declared, not tested.
   \item We report parameter-axis diagonals and eigenvalues of $\Delta_f$, but
   full CRLB-style reads would still need an observation likelihood contract
@@ -712,7 +860,10 @@ and the quarantine-wider gains. On sensor networks the core order holds on
 both a synthetic unit-disk field and a $12$-mote IBRL control;
 quarantine-wider is best on unit-disk, but on IBRL both quarantine rules lose
 more than baseline, so the quarantine safety valve pays an information cost
-on real data and the full ranking is data-dependent.
+on real data and the full ranking is data-dependent. On the IMAS$^2$ grid
+world the fusion-rule ranking tracks downstream entropy and accuracy, but
+Fisher~$\Delta I$ is a weak sensor-placement criterion; the method's role is
+auditing aggregation, not choosing sensors.
 
 Future work includes (i)~scaling the unit-disk and IBRL experiments to more
 motes, centre points, and time windows, (ii)~replacing analytic
@@ -733,7 +884,12 @@ uv run python examples/three_agent_cleaning/paper_experiments.py
 Artefacts land in \texttt{papers/coord-fisher/data} and
 \texttt{figures/}. Cleaning-council tables and figures in this PDF are the
 current analytic illustration; unit-disk and IBRL artefacts are
-\texttt{data/unit\_disk\_*} and \texttt{data/ibrl\_*}.
+\texttt{data/unit\_disk\_*} and \texttt{data/ibrl\_*}; IMAS$^2$ grid-world artefacts
+are \texttt{data/imas2\_*} (\texttt{examples/imas2\_grid/}). The grid-world code
+in \texttt{third\_party/imas2\_grid/} is vendored from
+\texttt{AronYoung414/multi-agent-active-perception-grid-world} (commit
+\texttt{0eae156}) under the MIT licence, with the licence file retained;
+credit to the IMAS$^2$ authors~\citep{shi2026imas2}.
 This PDF was built with pdflatex from
 \texttt{papers/coord-fisher/main.tex}.
 

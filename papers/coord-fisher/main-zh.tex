@@ -69,7 +69,7 @@
 \begin{abstract}
 去中心化传感网络经常面临“最后一英里”协调问题：每个 mote 或边缘智能体只观测到局部读数与局部坐标，但团队必须决定\emph{谁与谁交换什么}，以及在不确定时何时\emph{隔离（quarantine）}报告。感知——由读数与几何诱导的局部范畴分布——与协调——把联合压缩为交换或隔离动作的确定性规则——往往被分开设计。尽管 Dec-POMDP 主动感知与信息驱动传感仔细处理了观察什么，协调层却经常是启发式的，并仅以任务奖励或吞吐量评估。本文提出一个互补问题：\emph{在智能体局部律固定的前提下，哪些与 $\theta$ 无关的协调规则对全局场或事件参数销毁的 Fisher 信息最少？}
 
-我们将协调形式化为 AggregationMap $A=f(Z)$，并用声明乘积联合与其推前之间的数据处理间隙 $I_Z(\theta)-I_A(\theta)\succeq 0$ 量化信息损失。规则按 $\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$ 排序。主要应用是去中心化传感网络。在合成 unit-disk 二维场（$9$ 个 mote）上，核心排序成立且 quarantine-wider 是损失最低的非平凡规则；在 $12$ 个 mote 的 Intel Berkeley Lab（IBRL）真实数据对照上，核心排序同样成立，但两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀要付出信息代价，完整排序取决于数据。作为同一 AggregationMap 纲领的可复现解析说明，我们还使用 Jevometry 三智能体数据清洗委员会（适用性、修复、风险），在证据与歧义网格上比较七条纯规则——baseline、stricter、wider、quarantine-to-review、混合 quarantine-wider 拆分、粗粒度二元规则，以及近恒等上界。在设计中心点，baseline 协调约丢弃 $\mathrm{tr}(I_Z)$ 的一半；将 quarantine 软化为人工复核可挽回该损失的相当一部分；再与不同的 auto-normalize/auto-impute 标签组合，可在完整设计网格上进一步改进。排序
+我们将协调形式化为 AggregationMap $A=f(Z)$，并用声明乘积联合与其推前之间的数据处理间隙 $I_Z(\theta)-I_A(\theta)\succeq 0$ 量化信息损失。规则按 $\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$ 排序。主要应用是去中心化传感网络。在合成 unit-disk 二维场（$9$ 个 mote）上，核心排序成立且 quarantine-wider 是损失最低的非平凡规则；在 $12$ 个 mote 的 Intel Berkeley Lab（IBRL）真实数据对照上，核心排序同样成立，但两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀要付出信息代价，完整排序取决于数据。在固定传感器的 IMAS$^2$ 网格世界基准上，融合规则的 Fisher 损失排序与条件熵和准确率一致，而 Fisher~$\Delta I$ 被证明是弱的传感器布置准则。作为同一 AggregationMap 纲领的可复现解析说明，我们还使用 Jevometry 三智能体数据清洗委员会（适用性、修复、风险），在证据与歧义网格上比较七条纯规则——baseline、stricter、wider、quarantine-to-review、混合 quarantine-wider 拆分、粗粒度二元规则，以及近恒等上界。在设计中心点，baseline 协调约丢弃 $\mathrm{tr}(I_Z)$ 的一半；将 quarantine 软化为人工复核可挽回该损失的相当一部分；再与不同的 auto-normalize/auto-impute 标签组合，可在完整设计网格上进一步改进。排序
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
 在每个网格单元上稳定。我们讨论传感智能体交换与隔离策略的设计含义、迫使确定性映射的 API 约束，以及清洗数值作为与 unit-disk 和 IBRL 结果并列的解析说明的角色。配套代码与可复现表格随 Jevometry 仓库一并提供。
@@ -92,6 +92,7 @@ Fisher 信息为这种敏感性提供了局部、可微的语言~\citep{fisher19
 \begin{enumerate}
   \item 我们将多智能体协调规则比较表述为：在共享声明联合下，按 Fisher 信息损失对与 $\theta$ 无关的聚合映射排序，并以传感网络交换与隔离作为动机性的 AggregationMap 语义（第~\ref{sec:problem}~节）。
   \item 我们将该纲领映射到三层——全局场参数 $\theta$、局部智能体范畴律，以及与 $\theta$ 无关的 AggregationMap——并运行合成 unit-disk 主实验与 IBRL 真实数据对照（第~\ref{sec:sensor-layers}~节与第~\ref{sec:sensor-results}~节）。核心排序在二者上都成立；quarantine-wider 在 unit-disk 上最好（$1.784$），而在 IBRL 上两条 quarantine 规则的损失都高于 baseline（$3.042$、$3.101$，对比 $2.785$）。
+  \item 在固定传感器的 IMAS$^2$ 网格世界上，融合规则的 $\mathrm{tr}\Delta I$ 排序与条件熵的 Spearman 相关为 $0.65$--$0.93$，与负准确率为 $0.51$--$0.87$；作为传感器布置准则，Fisher~$\Delta I$ 较弱且在随机运动下失效，我们如实作为负面发现报告（第~\ref{sec:imas2-grid}~节）。
   \item 作为当前解析实例，我们在 Jevometry 清洗委员会中实例化七条纯规则，并提供可复现实验装置：扫描参数网格、导出 CSV/JSON（含参数轴损失对角元与分数损失），并生成发表用图（第~\ref{sec:method}~节）。
   \item 经验上，在设计中心点 baseline 规则约损失 $\mathrm{tr}(I_Z)$ 的 $44\%$；quarantine-to-review 相对 baseline 约削减四分之一损失；混合 quarantine-wider 规则进一步改进（$\mathrm{tr}(\Delta)\approx 2.16$）并在完整网格上优于 quarantine-to-review；二元闸门的损失高于更严的中风险拒绝（第~\ref{sec:experiments}~节）。这些数值用于解析地说明 AggregationMap 审计；传感结果见第~\ref{sec:sensor-results}~节。
   \item 我们讨论该度量如何补充以奖励为中心的 Dec-POMDP 传感协调评估，以及 API 约束（仅确定性映射）对未来可学习协调器的含义（第~\ref{sec:discussion}~节）。
@@ -393,6 +394,96 @@ $<$ \texttt{stricter}（$3.474$）。
 \paragraph{如实解读两张表。}
 在 IBRL 上，两条 quarantine 规则的损失都高于 baseline（$3.042$ 与 $3.101$，对比 $2.785$）——与 unit-disk 正好相反，后者中 \texttt{quarantine\_wider} 是最好的非平凡规则。因此，quarantine 安全阀在真实数据上要付出信息代价；它对 $\mathrm{tr}(\Delta)$ 是增益还是损害取决于数据，除核心排序外我们不声称任何普遍排序。在 IBRL 上，\texttt{wider}、\texttt{baseline} 与 \texttt{coarse\_binary} 几乎打平（$2.78$--$2.80$），因此在该子网上这三条规则按此度量实际上难以区分。
 
+\section{在 IMAS$^2$ 网格世界基准上的对比}
+\label{sec:imas2-grid}
+
+\paragraph{设置。}
+我们复用 IMAS$^2$~\citep{shi2026imas2} 发布的网格世界（上游仓库 \texttt{AronYoung414/multi-agent-active-perception-grid-world}，MIT 许可，commit \texttt{0eae156}；\texttt{grid\_world\_example.py} 与 \texttt{pomdp\_grid.py} 原样收录于 \texttt{third\_party/imas2\_grid/}）。世界为 $10\times10$ 网格，含 $12$ 个障碍与 $9$ 个候选传感器。我们将传感器集合固定为 IMAS$^2$ 报告的布置，即传感器 $2,3,4,6,8$。参数为 $\theta=(\text{对抗先验的 logit},\ \text{滑移概率})$。每个传感器输出与 $\theta$ 无关的对抗/正常/不确定标签，七个 AggregationMap 融合这五个标签。每条规则都在同样的 $500$ 条轨迹上评估（种子 $0$，视界 $14$ 个感知步），对融合标签使用精确贝叶斯（HMM 前向）滤波，报告智能体类型的条件熵 $H$ 与 MAP 准确率。
+
+\paragraph{主结果：在固定传感器下审计聚合层。}
+本实验不选择传感器；它审计在固定传感器集合之上施加的融合规则。表~\ref{tab:imas2-main} 给出随机动态、小范围配置；表~\ref{tab:imas2-all} 给出全部八种固定/随机朝向配置下的 $\mathrm{tr}\Delta I$。在全部九种配置（含重训策略行）上，$\mathrm{tr}\Delta I$ 排序与条件熵的 Spearman 相关介于 $0.65$ 与 $0.93$ 之间，与负准确率介于 $0.51$ 与 $0.87$ 之间（表~\ref{tab:imas2-spearman}）。因此，更低的 Fisher 损失与更好的下游推断一致，但并不完美。与 IBRL 上一样，两条 quarantine 规则在每种配置下的损失都高于 baseline：在工作点上大多数格子被标为“不确定”，隔离它们是在丢弃信息而非保护信息。
+
+\begin{table}[t]
+\centering
+\caption{IMAS$^2$ 网格世界，随机动态、小范围，传感器 2-3-4-6-8。左：固定朝向；右：缩减重训的 IMAS$^2$ 策略（每传感器 150 次迭代）。$H$ = 类型的条件熵，Acc = MAP 准确率；500 条轨迹，种子 0。}
+\label{tab:imas2-main}
+\begin{tabular}{lrrrrrr}
+\toprule
+规则 & $\mathrm{tr}\Delta I$ & $H$ & Acc & $\mathrm{tr}\Delta I$ & $H$ & Acc \\
+\midrule
+\texttt{near\_identity} & 0.0 & 0.543 & 0.824 & 0.0 & 0.557 & 0.828 \\
+\texttt{wider} & 115.4 & 0.676 & 0.768 & 92.3 & 0.677 & 0.750 \\
+\texttt{baseline} & 118.6 & 0.675 & 0.770 & 93.4 & 0.685 & 0.750 \\
+\texttt{stricter} & 138.7 & 0.687 & 0.768 & 113.9 & 0.704 & 0.742 \\
+\texttt{quarantine\_review} & 140.9 & 0.809 & 0.736 & 137.8 & 0.791 & 0.718 \\
+\texttt{quarantine\_wider} & 137.7 & 0.809 & 0.736 & 136.7 & 0.790 & 0.718 \\
+\texttt{coarse\_binary} & 152.7 & 0.883 & 0.608 & 122.8 & 0.895 & 0.620 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{各朝向策略（F = 固定，R = 随机）$\times$ 动态（D/S）$\times$ 范围（S/L）配置下的 $\mathrm{tr}\Delta I$。}
+\label{tab:imas2-all}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+规则 & F-D-S & F-D-L & F-S-S & F-S-L & R-D-S & R-D-L & R-S-S & R-S-L \\
+\midrule
+\texttt{near\_identity} & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+\texttt{wider} & 42.0 & 212.6 & 115.4 & 136.5 & 21.3 & 134.3 & 82.1 & 149.3 \\
+\texttt{baseline} & 42.0 & 221.7 & 118.6 & 145.5 & 21.4 & 136.2 & 82.7 & 151.9 \\
+\texttt{stricter} & 98.3 & 253.5 & 138.7 & 150.1 & 46.4 & 169.4 & 96.7 & 164.5 \\
+\texttt{quarantine\_review} & 89.3 & 292.1 & 140.9 & 287.3 & 56.8 & 204.0 & 129.7 & 224.0 \\
+\texttt{quarantine\_wider} & 89.3 & 283.0 & 137.7 & 278.4 & 56.7 & 202.2 & 129.1 & 221.4 \\
+\texttt{coarse\_binary} & 63.8 & 277.4 & 152.7 & 180.8 & 42.8 & 176.2 & 108.8 & 181.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{各配置下七条规则的 $\mathrm{tr}\Delta I$ 排序与条件熵、与负准确率的 Spearman 相关。}
+\label{tab:imas2-spearman}
+\begin{tabular}{lrr}
+\toprule
+配置 & $\rho(\Delta I,H)$ & $\rho(\Delta I,-\mathrm{Acc})$ \\
+\midrule
+F-D-S & 0.66 & 0.51 \\
+F-D-L & 0.82 & 0.84 \\
+F-S-S & 0.93 & 0.85 \\
+F-S-L & 0.89 & 0.86 \\
+R-D-S & 0.65 & 0.69 \\
+R-D-L & 0.82 & 0.55 \\
+R-S-S & 0.86 & 0.84 \\
+R-S-L & 0.89 & 0.85 \\
+IMAS$^2$-retrained-S-S & 0.89 & 0.87 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{次要结果：传感器布置（负面发现）。}
+我们还检验了 $\sum_t\mathrm{tr}\,I_Z$ 能否作为布置准则，在全部 $126$ 种九选五布置上与蒙特卡洛 MI 估计对比（表~\ref{tab:imas2-place}）。它不值得推荐。在确定性动态下，与 MI 的 Spearman 相关为 $0.60$，两者的 top-5 集合只共享一种布置；在随机动态下，相关为 $-0.15$，top-5 集合完全不相交。Fisher 将 IMAS$^2$ 的布置排在第 $13$ 位（确定性）与第 $54$ 位（随机）。相反，MI 枚举在确定性动态下恢复出 2-3-4-6-8 为最优布置（随机动态下为第二），这与 IMAS$^2$ 交叉验证了我们的实验装置。Fisher 打分更快（$3.6$\,s 与 $4.4$\,s，对比 MI 的 $52.8$\,s 与 $52.3$\,s），但一个选错传感器的快速准则并无用处，我们不把速度算作它的优点。Fisher~$\Delta I$ 是弱的布置准则，在随机运动下基本失效。我们的贡献是审计协调与聚合规则，而非传感器选择。
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{在全部 126 种五传感器布置上的 Fisher 与 MI 对比（小范围、固定朝向）。名次为 IMAS$^2$ 所报告布置 2-3-4-6-8 的名次；时间为对全部 126 种打分的秒数。}
+\label{tab:imas2-place}
+\begin{tabular}{lrrrllrrrr}
+\toprule
+动态 & $n$ & $\rho$ & top-5 & Fisher top-1 & MI top-1 & F 名次 & MI 名次 & $t_F$ & $t_{MI}$ \\
+\midrule
+确定性 & 126 & $0.60$ & 1 & 2-4-5-6-8 & 2-3-4-6-8 & 13 & 1 & 3.6 & 52.8 \\
+随机 & 126 & $-0.15$ & 0 & 0-2-3-6-7 & 1-2-4-6-8 & 54 & 2 & 4.4 & 52.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{IMAS$^2$ 基线。}
+我们以缩减形式重跑了上游 IMAS$^2$ 训练：每传感器 $150$ 次迭代（论文为 $1000$），按报告的传感器顺序，共耗时 $2051$\,s；五个传感器后的训练熵为 $0.558$。另外，\citet{shi2026imas2} 报告 IMAS$^2$ 在其随机、大范围设置下的条件熵为 $0.493$、准确率为 $86.0\%$。这些报告数值与我们的缩减重跑不可直接比较（迭代预算、范围与评估器均不同）。完整流程在 CPU 上估计需超过 $12$ 小时，未运行。
+
 \section{讨论}
 \label{sec:discussion}
 
@@ -417,6 +508,9 @@ Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错�
 \begin{itemize}
   \item 所报告的经验数值来自清洗委员会中手工指定的解析 softmax 族，而非拟合的在线决策模型。绝对迹是示意性的。
   \item 传感实验规模较小：$9$ 个合成 mote，以及单一中心点上 $12$ 个 mote、$480$ 行的 IBRL 子样本。quarantine 的排序在二者之间翻转，因此核心排序之外的排序取决于数据，不应解读为普遍结论。
+  \item 在 IMAS$^2$ 网格世界上，$\mathrm{tr}\Delta I$ 对逐步 Fisher 信息求和，忽略了跨步的时间相关性。
+  \item 在确定性动态下，滑移导数是在边界 slip $=0$ 处的单侧有限差分。
+  \item 重训策略行在我们的评估器中重放记录的状态与动作并重新采样观测；它们与上游训练 rollout 并非完全贝叶斯一致。
   \item 条件独立是声明的，而非检验的。
   \item 我们报告 $\Delta_f$ 的参数轴对角元与特征值，但完整 CRLB 式解读仍需要清洗例子未提供的观测似然契约。
   \item 各规则的动作字母表不同；作为关于 $\theta$ 的保留信息，$\mathrm{tr}(I_A)$ 比较仍然有意义，但把 $|A|$ 当作效用的解释超出范围。
@@ -429,7 +523,7 @@ Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错�
 我们提出在共享声明联合下按 Fisher 信息损失对多智能体协调规则排序，并以去中心化传感智能体交换与隔离作为主要的 AggregationMap 叙事。在局部感知固定时，确定性协调器可丢弃联合 Fisher 迹的很大一部分；小的规则编辑（隔离处理、更细动作字母表、风险或邻域阈值）会以易于离线度量的幅度移动该损失。三智能体清洗委员会提供可复现的解析概念验证——包括稳定排序
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
-以及 quarantine-wider 收益。在传感网络上，核心排序在合成 unit-disk 场与 $12$ 个 mote 的 IBRL 对照上均成立；quarantine-wider 在 unit-disk 上最好，但在 IBRL 上两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀在真实数据上要付出信息代价，完整排序取决于数据。
+以及 quarantine-wider 收益。在传感网络上，核心排序在合成 unit-disk 场与 $12$ 个 mote 的 IBRL 对照上均成立；quarantine-wider 在 unit-disk 上最好，但在 IBRL 上两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀在真实数据上要付出信息代价，完整排序取决于数据。在 IMAS$^2$ 网格世界上，融合规则排序与下游熵和准确率一致，但 Fisher~$\Delta I$ 是弱的传感器布置准则；该方法的角色是审计聚合，而非选择传感器。
 
 未来工作包括：(i)~将 unit-disk 与 IBRL 实验扩展到更多 mote、中心点与时间窗口；(ii)~在适当时用 TypeSafe / 在线决策模型 Jacobian 替换解析智能体；(iii)~带显式条件动作模型的随机协调器；(iv)~在 JAAMAS 风格的经验研究中将 $\mathrm{tr}(\Delta_f)$ 与任务级效用（场估计误差、清洗质量）耦合。
 
@@ -443,7 +537,7 @@ uv run python examples/three_agent_cleaning/compare_rules.py
 uv run python examples/three_agent_cleaning/paper_experiments.py
 \end{verbatim}
 产物落在 \texttt{papers/coord-fisher/data} 与
-\texttt{figures/}。本 PDF 中的清洗委员会表格与图是当前解析说明；unit-disk 与 IBRL 产物为 \texttt{data/unit\_disk\_*} 与 \texttt{data/ibrl\_*}。本 PDF 由 lualatex 自
+\texttt{figures/}。本 PDF 中的清洗委员会表格与图是当前解析说明；unit-disk 与 IBRL 产物为 \texttt{data/unit\_disk\_*} 与 \texttt{data/ibrl\_*}；IMAS$^2$ 网格世界产物为 \texttt{data/imas2\_*}（\texttt{examples/imas2\_grid/}）。\texttt{third\_party/imas2\_grid/} 中的网格世界代码收录自 \texttt{AronYoung414/multi-agent-active-perception-grid-world}（commit \texttt{0eae156}），遵循 MIT 许可并保留许可文件；致谢 IMAS$^2$ 作者~\citep{shi2026imas2}。本 PDF 由 lualatex 自
 \texttt{papers/coord-fisher/main-zh.tex} 构建（英文版见 \texttt{main.tex}）。
 
 \bibliographystyle{plainnat}
