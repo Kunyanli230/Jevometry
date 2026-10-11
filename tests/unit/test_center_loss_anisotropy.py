@@ -122,3 +122,20 @@ def test_quarantine_wider_vs_review_json() -> None:
     assert summary["hold"] == summary["grid_points"]
     assert summary["hold_ratio"] == 1.0
     assert summary["fail"] == 0
+
+
+def test_quarantine_action_mass_compare_artifacts() -> None:
+    import csv
+    import json
+
+    csv_path = REPO / "papers" / "coord-fisher" / "data" / "quarantine_action_mass_compare.csv"
+    json_path = REPO / "papers" / "coord-fisher" / "data" / "quarantine_action_mass_compare.json"
+    assert csv_path.is_file() and json_path.is_file()
+    rows = list(csv.DictReader(csv_path.open(newline="", encoding="utf-8")))
+    assert rows
+    summary = json.loads(json_path.read_text())
+    assert summary["rules"] == ["quarantine_review", "quarantine_wider"]
+    # wider splits auto_fix into distinct autos; review keeps auto_fix
+    assert "auto_fix" in summary["actions_only_in_review"] or any(
+        row["action"] == "auto_fix" for row in rows
+    )
