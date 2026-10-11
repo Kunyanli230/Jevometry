@@ -69,10 +69,10 @@
 \begin{abstract}
 去中心化传感网络经常面临“最后一英里”协调问题：每个 mote 或边缘智能体只观测到局部读数与局部坐标，但团队必须决定\emph{谁与谁交换什么}，以及在不确定时何时\emph{隔离（quarantine）}报告。感知——由读数与几何诱导的局部范畴分布——与协调——把联合压缩为交换或隔离动作的确定性规则——往往被分开设计。尽管 Dec-POMDP 主动感知与信息驱动传感仔细处理了观察什么，协调层却经常是启发式的，并仅以任务奖励或吞吐量评估。本文提出一个互补问题：\emph{在智能体局部律固定的前提下，哪些与 $\theta$ 无关的协调规则对全局场或事件参数销毁的 Fisher 信息最少？}
 
-我们将协调形式化为 AggregationMap $A=f(Z)$，并用声明乘积联合与其推前之间的数据处理间隙 $I_Z(\theta)-I_A(\theta)\succeq 0$ 量化信息损失。规则按 $\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$ 排序。预期的主要应用是合成 unit-disk 二维传感场（主实验，即将开展），并以 Intel Berkeley Lab（IBRL）mote~$9$--$16$ 子网作为真实数据对照（同样即将开展）。作为同一 AggregationMap 纲领的当前可复现解析实例，我们使用 Jevometry 三智能体数据清洗委员会（适用性、修复、风险），在证据与歧义网格上比较七条纯规则——baseline、stricter、wider、quarantine-to-review、混合 quarantine-wider 拆分、粗粒度二元规则，以及近恒等上界。在设计中心点，baseline 协调约丢弃 $\mathrm{tr}(I_Z)$ 的一半；将 quarantine 软化为人工复核可挽回该损失的相当一部分；再与不同的 auto-normalize/auto-impute 标签组合，可在完整设计网格上进一步改进。排序
+我们将协调形式化为 AggregationMap $A=f(Z)$，并用声明乘积联合与其推前之间的数据处理间隙 $I_Z(\theta)-I_A(\theta)\succeq 0$ 量化信息损失。规则按 $\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$ 排序。主要应用是去中心化传感网络。在合成 unit-disk 二维场（$9$ 个 mote）上，核心排序成立且 quarantine-wider 是损失最低的非平凡规则；在 $12$ 个 mote 的 Intel Berkeley Lab（IBRL）真实数据对照上，核心排序同样成立，但两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀要付出信息代价，完整排序取决于数据。作为同一 AggregationMap 纲领的可复现解析说明，我们还使用 Jevometry 三智能体数据清洗委员会（适用性、修复、风险），在证据与歧义网格上比较七条纯规则——baseline、stricter、wider、quarantine-to-review、混合 quarantine-wider 拆分、粗粒度二元规则，以及近恒等上界。在设计中心点，baseline 协调约丢弃 $\mathrm{tr}(I_Z)$ 的一半；将 quarantine 软化为人工复核可挽回该损失的相当一部分；再与不同的 auto-normalize/auto-impute 标签组合，可在完整设计网格上进一步改进。排序
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
-在每个网格单元上稳定。我们讨论传感智能体交换与隔离策略的设计含义、迫使确定性映射的 API 约束，以及在 unit-disk 与 IBRL 结果到位之前清洗数值作为示意性概念验证的角色。配套代码与可复现表格随 Jevometry 仓库一并提供。
+在每个网格单元上稳定。我们讨论传感智能体交换与隔离策略的设计含义、迫使确定性映射的 API 约束，以及清洗数值作为与 unit-disk 和 IBRL 结果并列的解析说明的角色。配套代码与可复现表格随 Jevometry 仓库一并提供。
 \end{abstract}
 
 \section{引言}
@@ -84,20 +84,20 @@ $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 Fisher 信息为这种敏感性提供了局部、可微的语言~\citep{fisher1925theory,amari2016information}。对具有得分 Jacobian $J_Z$ 的离散模型 $P_\theta(Z)$，Fisher 矩阵 $I_Z=J_Z^\top \mathrm{diag}(P_\theta)^{-1} J_Z$ 度量无穷小参数移动如何强烈改变结果分布。当固定映射 $f$ 产生动作 $A=f(Z)$ 时，Fisher 信息的数据处理不等式在标准正则条件下断言 $I_Z-I_A\succeq 0$~\citep{zamir1998fisherdpi,cover2006elements}。当 $I_Z$ 固定时，标量 $\mathrm{tr}(I_Z-I_A)$ 便是可比较的损失摘要。
 
 \paragraph{目标设定与当前证据。}
-我们的主叙事是：在局部观测下的去中心化传感智能体，以 Fisher~$\Delta I$ 作为共享决策函数，在协调规则——包括不确定时的隔离——之间进行选择。预期的主实验是合成 unit-disk 二维场；次要对照是 Intel Berkeley Lab（IBRL）mote~$9$--$16$ 子网。这些传感实验即将开展，本文\emph{不}报告其数值。我们\emph{确实}报告的是同一 AggregationMap 纲领的可复现解析实例：Jevometry 三智能体清洗委员会，其表格与图作为按 $\mathrm{tr}(\Delta)$ 对
+我们的主叙事是：在局部观测下的去中心化传感智能体，以 Fisher~$\Delta I$ 作为共享决策函数，在协调规则——包括不确定时的隔离——之间进行选择。主实验是合成 unit-disk 二维场；次要对照是 $12$ 个 mote 的 Intel Berkeley Lab（IBRL）子网。二者均在第~\ref{sec:sensor-results}~节报告。我们另外报告同一 AggregationMap 纲领的可复现解析实例：Jevometry 三智能体清洗委员会，其表格与图作为按 $\mathrm{tr}(\Delta)$ 对
 \texttt{near}/\texttt{wider}/\texttt{baseline}/\texttt{stricter}/
 \texttt{quarantine\_*}/\texttt{near\_identity} 类规则排序的概念验证。
 
 \paragraph{贡献。}
 \begin{enumerate}
   \item 我们将多智能体协调规则比较表述为：在共享声明联合下，按 Fisher 信息损失对与 $\theta$ 无关的聚合映射排序，并以传感网络交换与隔离作为动机性的 AggregationMap 语义（第~\ref{sec:problem}~节）。
-  \item 我们将该纲领映射到三层——全局场参数 $\theta$、局部智能体范畴律，以及与 $\theta$ 无关的 AggregationMap——并陈述计划中的 unit-disk 主实验与 IBRL 对照（第~\ref{sec:sensor-layers}~节）。
+  \item 我们将该纲领映射到三层——全局场参数 $\theta$、局部智能体范畴律，以及与 $\theta$ 无关的 AggregationMap——并运行合成 unit-disk 主实验与 IBRL 真实数据对照（第~\ref{sec:sensor-layers}~节与第~\ref{sec:sensor-results}~节）。核心排序在二者上都成立；quarantine-wider 在 unit-disk 上最好（$1.784$），而在 IBRL 上两条 quarantine 规则的损失都高于 baseline（$3.042$、$3.101$，对比 $2.785$）。
   \item 作为当前解析实例，我们在 Jevometry 清洗委员会中实例化七条纯规则，并提供可复现实验装置：扫描参数网格、导出 CSV/JSON（含参数轴损失对角元与分数损失），并生成发表用图（第~\ref{sec:method}~节）。
-  \item 经验上，在设计中心点 baseline 规则约损失 $\mathrm{tr}(I_Z)$ 的 $44\%$；quarantine-to-review 相对 baseline 约削减四分之一损失；混合 quarantine-wider 规则进一步改进（$\mathrm{tr}(\Delta)\approx 2.16$）并在完整网格上优于 quarantine-to-review；二元闸门的损失高于更严的中风险拒绝（第~\ref{sec:experiments}~节）。这些数值用于说明 AggregationMap 审计；它们不是 unit-disk 或 IBRL 结果。
+  \item 经验上，在设计中心点 baseline 规则约损失 $\mathrm{tr}(I_Z)$ 的 $44\%$；quarantine-to-review 相对 baseline 约削减四分之一损失；混合 quarantine-wider 规则进一步改进（$\mathrm{tr}(\Delta)\approx 2.16$）并在完整网格上优于 quarantine-to-review；二元闸门的损失高于更严的中风险拒绝（第~\ref{sec:experiments}~节）。这些数值用于解析地说明 AggregationMap 审计；传感结果见第~\ref{sec:sensor-results}~节。
   \item 我们讨论该度量如何补充以奖励为中心的 Dec-POMDP 传感协调评估，以及 API 约束（仅确定性映射）对未来可学习协调器的含义（第~\ref{sec:discussion}~节）。
 \end{enumerate}
 
-本稿旨在作为伴随开源实验的短期刊 / arXiv 草稿。清洗委员会数值是解析且示意性的；一旦 unit-disk 与 IBRL 实验装置落地，传感场结果将取代它们成为主要经验叙事。
+本稿旨在作为伴随开源实验的短期刊 / arXiv 草稿。清洗委员会数值是解析且示意性的；unit-disk 与 IBRL 传感结果是主要经验叙事。
 
 \section{相关工作}
 \label{sec:related}
@@ -177,10 +177,10 @@ AggregationMap 纲领可用匹配去中心化传感的三层解读：
   与 $\theta$ 无关的规则 $f$ 把联合压缩为协调动作：谁与谁交换、发送何种载荷，或在局部不确定性高时是否隔离报告。候选族复用下文研究的同一类定性旋钮——近邻交换、更宽邻域、baseline 固件、更严阈值、隔离变体，以及近恒等上界——并按 $\mathrm{tr}(\Delta_f)=\mathrm{tr}(I_Z-I_A)$ 排序。
 \end{enumerate}
 
-\paragraph{计划中的传感实验（尚无结果）。}
+\paragraph{传感实验。}
 \begin{itemize}
-  \item \textbf{主实验（即将开展）：}二维场中的合成 unit-disk 传感器。局部字母表与 AggregationMap 将遵循第~(ii)--(iii)~层；一旦实验装置完成，表格与图将报告 $\mathrm{tr}(\Delta)$ 排序。我们有意省略虚构的 unit-disk 数值。
-  \item \textbf{对照（即将开展）：}Intel Berkeley Lab（IBRL）子网，mote~$9$--$16$，作为同一 AggregationMap 接口下的真实部署健全性检查。同样，本稿不声称任何 IBRL 数值。
+  \item \textbf{主实验：}二维场中的合成 unit-disk 传感器（$9$ 个 mote，$3\times3$ 网格，$R=0.45$）。局部字母表与 AggregationMap 遵循第~(ii)--(iii)~层；结果见表~\ref{tab:unitdisk}。
+  \item \textbf{对照：}$12$ 个 mote（编号 4, 11, 16, 18, 20, 26, 34, 39, 42, 47, 50, 53）的 Intel Berkeley Lab（IBRL）子网，作为同一 AggregationMap 接口下的真实部署健全性检查；结果见表~\ref{tab:ibrl}。
 \end{itemize}
 第~\ref{sec:method}--\ref{sec:experiments}~节中的清洗委员会研究，是层~(i)--(iii) 的当前、完全可复现解析说明，其中 $\theta=(\mathrm{evidence},\mathrm{ambiguity})$，修复/隔离动作扮演交换/隔离语义的角色。
 
@@ -237,7 +237,7 @@ risk & Score & $\{0,1,2\}$（低/中/高） \\
   \texttt{papers/coord-fisher/figures/}
 \end{itemize}
 
-\texttt{src/jevometry} 下的库代码未改动；仅扩展了示例级规则与脚本。unit-disk 与 IBRL 实验装置一旦可用，将复用同一 AggregationMap 与 \texttt{information\_loss} 接口。
+\texttt{src/jevometry} 下的库代码未改动；仅扩展了示例级规则与脚本。unit-disk 与 IBRL 实验装置复用同一 AggregationMap 与 \texttt{information\_loss} 接口。
 
 \section{实验}
 \label{sec:experiments}
@@ -337,11 +337,67 @@ $\mathrm{tr}(\Delta_{\mathrm{quarantine\_wider}})
 \label{fig:frac}
 \end{figure}
 
+\subsection{传感网络结果}
+\label{sec:sensor-results}
+
+\paragraph{Unit-disk 主实验。}
+我们在 $[0,1]^2$ 中以 $3\times3$ 网格放置 $N=9$ 个 mote，unit-disk 半径 $R=0.45$（$12$ 条边，平均度 $2.67$）。全局场参数为中心固定的高斯凸包的 $\theta=(\mathrm{amplitude},\mathrm{length\ scale})=(0.7,0.35)$。以传感交换/隔离语义应用同样的七个 AggregationMap。Fisher 近似检查通过，核心排序
+$\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
+\le\mathrm{stricter}$ 成立。在非平凡规则中，\texttt{quarantine\_wider} 损失最低（$1.784$），领先 \texttt{wider}（$1.820$）与 \texttt{baseline}（$1.833$）；\texttt{coarse\_binary}（$2.246$）与 \texttt{stricter}（$2.833$）损失最大（表~\ref{tab:unitdisk}）。
+
+\begin{table}[t]
+\centering
+\caption{合成 unit-disk 二维场（$N=9$，$R=0.45$），$\theta=(0.7,0.35)$ 处的中心点迹。}
+\label{tab:unitdisk}
+\begin{tabular}{lrrr}
+\toprule
+规则 & $\mathrm{tr}(I_Z)$ & $\mathrm{tr}(I_A)$ & $\mathrm{tr}(\Delta)$ \\
+\midrule
+\texttt{near\_identity} & 5.788 & 5.788 & 0.000 \\
+\texttt{wider} & 5.788 & 3.969 & 1.820 \\
+\texttt{baseline} & 5.788 & 3.955 & 1.833 \\
+\texttt{stricter} & 5.788 & 2.955 & 2.833 \\
+\texttt{quarantine\_review} & 5.788 & 3.913 & 1.875 \\
+\texttt{quarantine\_wider} & 5.788 & 4.004 & 1.784 \\
+\texttt{coarse\_binary} & 5.788 & 3.542 & 2.246 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{IBRL 真实数据对照。}
+我们取 Intel Berkeley Lab labdata\footnote{\url{https://db.csail.mit.edu/labdata/labdata.html}} 的 $480$ 行子样本，覆盖经最远点采样选出的 $12$ 个 mote（编号 4, 11, 16, 18, 20, 26, 34, 39, 42, 47, 50, 53），$\theta$ 为 MinMax 归一化后的平均温度与湿度，unit-disk 图的归一化半径为 $0.35$（$6$ 条边）。Fisher 近似检查通过，核心排序同样成立，但完整排序与 unit-disk 不同（表~\ref{tab:ibrl}）：
+\texttt{near\_identity}（$0.000$）$<$ \texttt{wider}（$2.784$）$\approx$
+\texttt{baseline}（$2.785$）$\approx$ \texttt{coarse\_binary}（$2.796$）$<$
+\texttt{quarantine\_wider}（$3.042$）$<$ \texttt{quarantine\_review}（$3.101$）
+$<$ \texttt{stricter}（$3.474$）。
+
+\begin{table}[t]
+\centering
+\caption{IBRL 对照（$12$ 个 mote，$480$ 行），特征均值处的中心点迹。}
+\label{tab:ibrl}
+\begin{tabular}{lrrr}
+\toprule
+规则 & $\mathrm{tr}(I_Z)$ & $\mathrm{tr}(I_A)$ & $\mathrm{tr}(\Delta)$ \\
+\midrule
+\texttt{near\_identity} & 3.943 & 3.943 & 0.000 \\
+\texttt{wider} & 3.943 & 1.159 & 2.784 \\
+\texttt{baseline} & 3.943 & 1.158 & 2.785 \\
+\texttt{stricter} & 3.943 & 0.469 & 3.474 \\
+\texttt{quarantine\_review} & 3.943 & 0.842 & 3.101 \\
+\texttt{quarantine\_wider} & 3.943 & 0.901 & 3.042 \\
+\texttt{coarse\_binary} & 3.943 & 1.147 & 2.796 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{如实解读两张表。}
+在 IBRL 上，两条 quarantine 规则的损失都高于 baseline（$3.042$ 与 $3.101$，对比 $2.785$）——与 unit-disk 正好相反，后者中 \texttt{quarantine\_wider} 是最好的非平凡规则。因此，quarantine 安全阀在真实数据上要付出信息代价；它对 $\mathrm{tr}(\Delta)$ 是增益还是损害取决于数据，除核心排序外我们不声称任何普遍排序。在 IBRL 上，\texttt{wider}、\texttt{baseline} 与 \texttt{coarse\_binary} 几乎打平（$2.78$--$2.80$），因此在该子网上这三条规则按此度量实际上难以区分。
+
 \section{讨论}
 \label{sec:discussion}
 
 \paragraph{传感网络解读。}
-在层~(i)--(iii) 下，当局部智能体律固定时，$\mathrm{tr}(\Delta_f)$ 是在交换与隔离规则之间选择的共享离线评分。更软的隔离（延迟或人工/操作员复核而非硬丢弃）与更细的交换字母表（不同的邻居或载荷标签）是表~\ref{tab:center} 中 quarantine-wider 收益的直接类比。二元 proceed/reject 闸门在运维上仍然方便，但在信息上昂贵。在 unit-disk 与 IBRL 数值可用之前，清洗委员会仅提供定性指导：排序机制与 DPI 证书可迁移；绝对迹不必迁移。
+在层~(i)--(iii) 下，当局部智能体律固定时，$\mathrm{tr}(\Delta_f)$ 是在交换与隔离规则之间选择的共享离线评分。更软的隔离（延迟或人工/操作员复核而非硬丢弃）与更细的交换字母表（不同的邻居或载荷标签）是表~\ref{tab:center} 中 quarantine-wider 收益的直接类比。二元 proceed/reject 闸门在运维上仍然方便，但在信息上昂贵。传感结果对此有所修正：quarantine-wider 在 unit-disk 上最好，但在 IBRL 上两条 quarantine 规则的损失都高于 baseline（第~\ref{sec:sensor-results}~节）。排序机制与 DPI 证书可跨场景迁移；绝对迹以及 quarantine 在排序中的位置不能迁移。
 
 \paragraph{“一半 Fisher”意味着什么。}
 Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错了” $44\%$。它意味着：局部上，参数的无穷小变化对最终动作分布的推动，弱于对智能体输出联合的推动。若监控仪表盘只看动作或交换率，就会低估底层智能体的敏感性。若下游估计器试图从动作反推 $\theta$，其问题严格难于从 $Z$ 反推。
@@ -359,8 +415,8 @@ Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错�
 \label{sec:limitations}
 
 \begin{itemize}
-  \item 所报告的经验数值来自清洗委员会中手工指定的解析 softmax 族，而非拟合的在线决策模型、unit-disk 场或 IBRL 轨迹。绝对迹是示意性的。
-  \item 合成 unit-disk（主）与 IBRL mote~$9$--$16$（对照）传感实验即将开展；本稿不含对二者的任何虚构结果。
+  \item 所报告的经验数值来自清洗委员会中手工指定的解析 softmax 族，而非拟合的在线决策模型。绝对迹是示意性的。
+  \item 传感实验规模较小：$9$ 个合成 mote，以及单一中心点上 $12$ 个 mote、$480$ 行的 IBRL 子样本。quarantine 的排序在二者之间翻转，因此核心排序之外的排序取决于数据，不应解读为普遍结论。
   \item 条件独立是声明的，而非检验的。
   \item 我们报告 $\Delta_f$ 的参数轴对角元与特征值，但完整 CRLB 式解读仍需要清洗例子未提供的观测似然契约。
   \item 各规则的动作字母表不同；作为关于 $\theta$ 的保留信息，$\mathrm{tr}(I_A)$ 比较仍然有意义，但把 $|A|$ 当作效用的解释超出范围。
@@ -373,9 +429,9 @@ Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错�
 我们提出在共享声明联合下按 Fisher 信息损失对多智能体协调规则排序，并以去中心化传感智能体交换与隔离作为主要的 AggregationMap 叙事。在局部感知固定时，确定性协调器可丢弃联合 Fisher 迹的很大一部分；小的规则编辑（隔离处理、更细动作字母表、风险或邻域阈值）会以易于离线度量的幅度移动该损失。三智能体清洗委员会提供可复现的解析概念验证——包括稳定排序
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
-以及 quarantine-wider 收益——而合成 unit-disk 与 IBRL mote~$9$--$16$ 实验在实现后仍是预期的主经验支柱与对照支柱。
+以及 quarantine-wider 收益。在传感网络上，核心排序在合成 unit-disk 场与 $12$ 个 mote 的 IBRL 对照上均成立；quarantine-wider 在 unit-disk 上最好，但在 IBRL 上两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀在真实数据上要付出信息代价，完整排序取决于数据。
 
-未来工作包括：(i)~在同一 AggregationMap 接口下完成 unit-disk 主实验与 IBRL 对照；(ii)~在适当时用 TypeSafe / 在线决策模型 Jacobian 替换解析智能体；(iii)~带显式条件动作模型的随机协调器；(iv)~在 JAAMAS 风格的经验研究中将 $\mathrm{tr}(\Delta_f)$ 与任务级效用（场估计误差、清洗质量）耦合。
+未来工作包括：(i)~将 unit-disk 与 IBRL 实验扩展到更多 mote、中心点与时间窗口；(ii)~在适当时用 TypeSafe / 在线决策模型 Jacobian 替换解析智能体；(iii)~带显式条件动作模型的随机协调器；(iv)~在 JAAMAS 风格的经验研究中将 $\mathrm{tr}(\Delta_f)$ 与任务级效用（场估计误差、清洗质量）耦合。
 
 \section*{可复现性}
 
@@ -387,7 +443,7 @@ uv run python examples/three_agent_cleaning/compare_rules.py
 uv run python examples/three_agent_cleaning/paper_experiments.py
 \end{verbatim}
 产物落在 \texttt{papers/coord-fisher/data} 与
-\texttt{figures/}。本 PDF 中的清洗委员会表格与图是当前解析说明；unit-disk 与 IBRL 实验装置即将开展。本 PDF 由 lualatex 自
+\texttt{figures/}。本 PDF 中的清洗委员会表格与图是当前解析说明；unit-disk 与 IBRL 产物为 \texttt{data/unit\_disk\_*} 与 \texttt{data/ibrl\_*}。本 PDF 由 lualatex 自
 \texttt{papers/coord-fisher/main-zh.tex} 构建（英文版见 \texttt{main.tex}）。
 
 \bibliographystyle{plainnat}

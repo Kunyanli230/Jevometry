@@ -55,10 +55,13 @@ information loss by the data-processing gap
 $I_Z(\theta)-I_A(\theta)\succeq 0$ between the Fisher information of a
 declared product joint and that of its pushforward. Rules are ranked by
 $\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$. The intended primary application
-is a synthetic unit-disk 2D sensor field (main experiment, forthcoming) with
-an Intel Berkeley Lab (IBRL) subnet of motes~$9$--$16$ as a real-data control
-(also forthcoming). As a current reproducible analytic instantiation of the
-same AggregationMap programme, we use the Jevometry three-agent data-cleaning
+is decentralized sensor networks. On a synthetic unit-disk 2D field ($9$
+motes) the core order holds and quarantine-wider is the lowest-loss
+non-trivial rule; on a $12$-mote Intel Berkeley Lab (IBRL) real-data control
+the core order also holds, but both quarantine rules lose more than baseline,
+so the quarantine safety valve pays an information cost and the full ranking
+is data-dependent. As a reproducible analytic illustration of the
+same AggregationMap programme, we also use the Jevometry three-agent data-cleaning
 council (applicability, repair, risk) and compare seven pure rules---baseline,
 stricter, wider, quarantine-to-review, a hybrid quarantine-wider split,
 coarse binary, and a near-identity upper bound---on a grid over evidence and
@@ -71,8 +74,8 @@ $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
 is stable on every grid cell. We discuss design implications for sensor-agent
 exchange and quarantine policies, API constraints that force deterministic
-maps, and the role of the cleaning numbers as an illustrative proof of
-concept pending unit-disk and IBRL results. Accompanying code and reproducible
+maps, and the role of the cleaning numbers as an analytic illustration
+alongside the unit-disk and IBRL results. Accompanying code and reproducible
 tables ship with the Jevometry repository.
 \end{abstract}
 
@@ -113,10 +116,9 @@ fixed.
 Our primary narrative is decentralized sensor agents under local observations,
 using Fisher~$\Delta I$ as a shared decision function to choose among
 coordination rules---including quarantine when uncertain. The intended main
-experiment is a synthetic unit-disk field in 2D; a secondary control is the
-Intel Berkeley Lab (IBRL) subnet of motes~$9$--$16$. Those sensor experiments
-are forthcoming and are \emph{not} reported numerically here. What we
-\emph{do} report is a reproducible analytic instantiation of the same
+experiment is a synthetic unit-disk field in 2D; a secondary control is a
+$12$-mote Intel Berkeley Lab (IBRL) subnet. Both are reported in
+Section~\ref{sec:sensor-results}. We additionally report a reproducible analytic instantiation of the same
 AggregationMap programme: the Jevometry three-agent cleaning council, whose
 tables and figures serve as a proof of concept for ranking
 \texttt{near}/\texttt{wider}/\texttt{baseline}/\texttt{stricter}/
@@ -131,8 +133,11 @@ $\mathrm{tr}(\Delta)$.
   motivating AggregationMap semantics (Section~\ref{sec:problem}).
   \item We map the programme onto three layers---global field parameters
   $\theta$, local agent categorical laws, and $\theta$-independent
-  AggregationMaps---and state the planned unit-disk main experiment and IBRL
-  control (Section~\ref{sec:sensor-layers}).
+  AggregationMaps---and run a synthetic unit-disk main experiment and an IBRL
+  real-data control (Sections~\ref{sec:sensor-layers}
+  and~\ref{sec:sensor-results}). The core order holds on both; quarantine-wider
+  is best on unit-disk ($1.784$), whereas on IBRL both quarantine rules lose
+  more than baseline ($3.042$, $3.101$ vs.\ $2.785$).
   \item As a current analytic instantiation, we instantiate seven pure rules
   in the Jevometry cleaning council and provide a reproducible harness that
   sweeps a parameter grid, exports CSV/JSON (including parameter-axis loss
@@ -144,7 +149,8 @@ $\mathrm{tr}(\Delta)$.
   further ($\mathrm{tr}(\Delta)\approx 2.16$) and dominates
   quarantine-to-review on the full grid; a binary gate loses more than
   stricter mid-risk rejection (Section~\ref{sec:experiments}). These numbers
-  illustrate the AggregationMap audit; they are not unit-disk or IBRL results.
+  illustrate the AggregationMap audit analytically; sensor results are in
+  Section~\ref{sec:sensor-results}.
   \item We discuss how this metric complements reward-centric Dec-POMDP
   evaluation for sensor coordination and what API constraints (deterministic
   maps only) imply for future learned coordinators
@@ -153,8 +159,8 @@ $\mathrm{tr}(\Delta)$.
 
 This manuscript is intended as a short journal / arXiv draft accompanying
 open-source experiments. Cleaning-council numbers are analytic and
-illustrative; sensor-field results will replace them as the primary empirical
-story once the unit-disk and IBRL harnesses land.
+illustrative; the unit-disk and IBRL sensor results are the primary empirical
+story.
 
 \section{Related work}
 \label{sec:related}
@@ -304,15 +310,14 @@ decentralized sensing:
   $\mathrm{tr}(\Delta_f)=\mathrm{tr}(I_Z-I_A)$.
 \end{enumerate}
 
-\paragraph{Planned sensor experiments (no results yet).}
+\paragraph{Sensor experiments.}
 \begin{itemize}
-  \item \textbf{Main (forthcoming):} synthetic unit-disk sensors in a 2D
-  field. Local alphabets and AggregationMaps will follow layers~(ii)--(iii);
-  tables and figures will report $\mathrm{tr}(\Delta)$ rankings once the
-  harness is complete. We deliberately omit fabricated unit-disk numbers.
-  \item \textbf{Control (forthcoming):} Intel Berkeley Lab (IBRL) subnet,
-  motes~$9$--$16$, as a real-deployment sanity check under the same
-  AggregationMap interface. Again, no IBRL numbers are claimed in this draft.
+  \item \textbf{Main:} synthetic unit-disk sensors in a 2D field ($9$ motes,
+  $3\times3$ grid, $R=0.45$). Local alphabets and AggregationMaps follow
+  layers~(ii)--(iii); results are in Table~\ref{tab:unitdisk}.
+  \item \textbf{Control:} Intel Berkeley Lab (IBRL) subnet of $12$ motes
+  (ids 4, 11, 16, 18, 20, 26, 34, 39, 42, 47, 50, 53), as a real-deployment sanity check under the same
+  AggregationMap interface; results are in Table~\ref{tab:ibrl}.
 \end{itemize}
 The cleaning-council study in Sections~\ref{sec:method}--\ref{sec:experiments}
 is the present, fully reproducible analytic illustration of layers~(i)--(iii)
@@ -396,8 +401,8 @@ additionally records the exact centre $\theta_0$. Outputs:
 \end{itemize}
 
 Library code under \texttt{src/jevometry} is unchanged; only example-level
-rules and scripts are extended. Unit-disk and IBRL harnesses will reuse the
-same AggregationMap and \texttt{information\_loss} interface once available.
+rules and scripts are extended. The unit-disk and IBRL harnesses reuse the
+same AggregationMap and \texttt{information\_loss} interface.
 
 \section{Experiments}
 \label{sec:experiments}
@@ -538,6 +543,84 @@ evidence$\times$ambiguity grid for non-identity rules
 \label{fig:frac}
 \end{figure}
 
+\subsection{Sensor-network results}
+\label{sec:sensor-results}
+
+\paragraph{Unit-disk main experiment.}
+We place $N=9$ motes on a $3\times3$ grid in $[0,1]^2$ with unit-disk radius
+$R=0.45$ ($12$ edges, mean degree $2.67$). The global field parameter is
+$\theta=(\mathrm{amplitude},\mathrm{length\ scale})=(0.7,0.35)$ of a Gaussian
+bump with fixed centre. The same seven AggregationMaps are applied with sensor
+exchange/quarantine semantics. The Fisher approximation check passes and the
+core order
+$\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
+\le\mathrm{stricter}$ holds. Among non-trivial rules,
+\texttt{quarantine\_wider} has the lowest loss ($1.784$), ahead of
+\texttt{wider} ($1.820$) and \texttt{baseline} ($1.833$);
+\texttt{coarse\_binary} ($2.246$) and \texttt{stricter} ($2.833$) lose most
+(Table~\ref{tab:unitdisk}).
+
+\begin{table}[t]
+\centering
+\caption{Synthetic unit-disk 2D field ($N=9$, $R=0.45$), centre-point traces at $\theta=(0.7,0.35)$.}
+\label{tab:unitdisk}
+\begin{tabular}{lrrr}
+\toprule
+Rule & $\mathrm{tr}(I_Z)$ & $\mathrm{tr}(I_A)$ & $\mathrm{tr}(\Delta)$ \\
+\midrule
+\texttt{near\_identity} & 5.788 & 5.788 & 0.000 \\
+\texttt{wider} & 5.788 & 3.969 & 1.820 \\
+\texttt{baseline} & 5.788 & 3.955 & 1.833 \\
+\texttt{stricter} & 5.788 & 2.955 & 2.833 \\
+\texttt{quarantine\_review} & 5.788 & 3.913 & 1.875 \\
+\texttt{quarantine\_wider} & 5.788 & 4.004 & 1.784 \\
+\texttt{coarse\_binary} & 5.788 & 3.542 & 2.246 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{IBRL real-data control.}
+We take a $480$-row subsample of the Intel Berkeley Lab
+labdata\footnote{\url{https://db.csail.mit.edu/labdata/labdata.html}} over
+$12$ motes (ids 4, 11, 16, 18, 20, 26, 34, 39, 42, 47, 50, 53) selected by farthest-point sampling, with
+$\theta$ the MinMax-normalized mean temperature and humidity and a unit-disk
+graph at normalized radius $0.35$ ($6$ edges). The Fisher approximation check
+passes and the core order again holds, but the full ordering differs from
+unit-disk (Table~\ref{tab:ibrl}):
+\texttt{near\_identity} ($0.000$) $<$ \texttt{wider} ($2.784$) $\approx$
+\texttt{baseline} ($2.785$) $\approx$ \texttt{coarse\_binary} ($2.796$) $<$
+\texttt{quarantine\_wider} ($3.042$) $<$ \texttt{quarantine\_review} ($3.101$)
+$<$ \texttt{stricter} ($3.474$).
+
+\begin{table}[t]
+\centering
+\caption{IBRL control ($12$ motes, $480$ rows), centre-point traces at the feature means.}
+\label{tab:ibrl}
+\begin{tabular}{lrrr}
+\toprule
+Rule & $\mathrm{tr}(I_Z)$ & $\mathrm{tr}(I_A)$ & $\mathrm{tr}(\Delta)$ \\
+\midrule
+\texttt{near\_identity} & 3.943 & 3.943 & 0.000 \\
+\texttt{wider} & 3.943 & 1.159 & 2.784 \\
+\texttt{baseline} & 3.943 & 1.158 & 2.785 \\
+\texttt{stricter} & 3.943 & 0.469 & 3.474 \\
+\texttt{quarantine\_review} & 3.943 & 0.842 & 3.101 \\
+\texttt{quarantine\_wider} & 3.943 & 0.901 & 3.042 \\
+\texttt{coarse\_binary} & 3.943 & 1.147 & 2.796 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Reading the two tables honestly.}
+On IBRL both quarantine rules lose more than baseline ($3.042$ and $3.101$
+versus $2.785$)---the reverse of unit-disk, where \texttt{quarantine\_wider}
+is the best non-trivial rule. The quarantine safety valve therefore pays an
+information cost on real data; whether it helps or hurts $\mathrm{tr}(\Delta)$
+is data-dependent, and we do not claim a universal ranking beyond the core
+order. On IBRL, \texttt{wider}, \texttt{baseline}, and
+\texttt{coarse\_binary} are nearly tied ($2.78$--$2.80$), so these three rules
+are practically indistinguishable by this metric on that subnet.
+
 \section{Discussion}
 \label{sec:discussion}
 
@@ -548,9 +631,11 @@ fixed. Softer quarantine (delay or human/operator review instead of hard drop)
 and finer exchange alphabets (distinct neighbour or payload labels) are the
 direct analogues of the quarantine-wider gains in Table~\ref{tab:center}.
 Binary proceed/reject gates remain operationally convenient but
-informationally costly. Until unit-disk and IBRL numbers are available, the
-cleaning council supplies only qualitative guidance: the ranking machinery and
-DPI certificate transfer; the absolute traces need not.
+informationally costly. The sensor results temper this: quarantine-wider is
+best on unit-disk but both quarantine rules lose more than baseline on IBRL
+(Section~\ref{sec:sensor-results}). The ranking machinery and DPI certificate
+transfer across settings; the absolute traces and the position of quarantine
+in the ranking do not.
 
 \paragraph{What ``half the Fisher'' means.}
 A $44\%$ drop in $\mathrm{tr}(I_Z)$ after baseline coordination does not mean
@@ -594,10 +679,11 @@ additional regularity.
 \begin{itemize}
   \item The reported empirical numbers come from hand-specified analytic
   softmax families in the cleaning council, not from fitted live decision
-  models, unit-disk fields, or IBRL traces. Absolute traces are illustrative.
-  \item Synthetic unit-disk (main) and IBRL motes~$9$--$16$ (control) sensor
-  experiments are forthcoming; this draft contains no fabricated results for
-  either.
+  models. Absolute traces are illustrative.
+  \item The sensor experiments are small: $9$ synthetic motes and a
+  $12$-mote, $480$-row IBRL subsample at a single centre point. The
+  quarantine ranking flips between them, so rankings beyond the core order
+  are data-dependent and should not be read as universal.
   \item Conditional independence is declared, not tested.
   \item We report parameter-axis diagonals and eigenvalues of $\Delta_f$, but
   full CRLB-style reads would still need an observation likelihood contract
@@ -622,12 +708,14 @@ measure offline. The three-agent cleaning council provides a reproducible
 analytic proof of concept---including the stable ordering
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
-and the quarantine-wider gains---while synthetic unit-disk and IBRL
-motes~$9$--$16$ experiments remain the intended main and control empirical
-pillars once implemented.
+and the quarantine-wider gains. On sensor networks the core order holds on
+both a synthetic unit-disk field and a $12$-mote IBRL control;
+quarantine-wider is best on unit-disk, but on IBRL both quarantine rules lose
+more than baseline, so the quarantine safety valve pays an information cost
+on real data and the full ranking is data-dependent.
 
-Future work includes (i)~completing the unit-disk main experiment and IBRL
-control under the same AggregationMap interface, (ii)~replacing analytic
+Future work includes (i)~scaling the unit-disk and IBRL experiments to more
+motes, centre points, and time windows, (ii)~replacing analytic
 agents with TypeSafe / live decision-model Jacobians where appropriate,
 (iii)~stochastic coordinators with explicit conditional action models, and
 (iv)~coupling $\mathrm{tr}(\Delta_f)$ with task-level utilities (field
@@ -644,7 +732,8 @@ uv run python examples/three_agent_cleaning/paper_experiments.py
 \end{verbatim}
 Artefacts land in \texttt{papers/coord-fisher/data} and
 \texttt{figures/}. Cleaning-council tables and figures in this PDF are the
-current analytic illustration; unit-disk and IBRL harnesses are forthcoming.
+current analytic illustration; unit-disk and IBRL artefacts are
+\texttt{data/unit\_disk\_*} and \texttt{data/ibrl\_*}.
 This PDF was built with pdflatex from
 \texttt{papers/coord-fisher/main.tex}.
 
