@@ -4,11 +4,14 @@ Paper draft (arXiv / JAAMAS-oriented) and reproducible experiments for ranking
 deterministic multi-agent coordination rules by Fisher information loss after
 the action layer.
 
+> **NOTE:** `main-zh.tex` / `main-zh.pdf` is the Simplified Chinese 1:1 counterpart of `main.tex` (same sections, equations, tables, figures, citations; prose translated). Build with `lualatex` + `bibtex` (Noto Serif CJK SC / Noto Sans Mono CJK SC via fontspec).
+
 ## Contents
 
 | Path | Role |
 | --- | --- |
 | `main.tex` / `references.bib` | English article source |
+| `main-zh.tex` / `main-zh.pdf` | Simplified Chinese 1:1 counterpart (lualatex) |
 | `main.pdf` | Built PDF (Tectonic) |
 | `data/` | CSV/JSON from the grid sweep and iteration exports |
 | `figures/` | Publication figures (PDF/PNG) |
@@ -70,6 +73,16 @@ Build the PDF (optional; needs [Tectonic](https://tectonic-typesetting.github.io
 cd papers/coord-fisher && tectonic main.tex
 ```
 
+Chinese PDF (`main-zh.pdf`):
+
+```bash
+cd papers/coord-fisher
+lualatex -interaction=nonstopmode main-zh.tex
+bibtex main-zh
+lualatex -interaction=nonstopmode main-zh.tex
+lualatex -interaction=nonstopmode main-zh.tex
+```
+
 ## Centre-point snapshot
 
 At `evidence=0.7`, `ambiguity=0.3`, $\mathrm{tr}(I_Z)\approx 6.84$ (ascending loss):
@@ -90,3 +103,12 @@ Core ordering: `near_identity ≤ wider ≤ baseline ≤ stricter` (64/64 on the
 
 Paper 2 (TypeSafe live ticket sensitivity) is out of scope here; see
 `papers/NOTE.md` if present.
+
+## Iris real-data check
+
+```bash
+uv run python examples/three_agent_cleaning/iris_experiments.py
+```
+
+Uses `sklearn.datasets.load_iris` only (petal length/width → θ). Writes
+`data/iris_center_loss.csv` and `data/iris_validation_summary.json`.

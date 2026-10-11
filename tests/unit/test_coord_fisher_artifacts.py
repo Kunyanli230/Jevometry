@@ -42,3 +42,19 @@ def test_coord_fisher_iteration_summary_and_artifacts() -> None:
     ]
     missing = [str(path.relative_to(REPO)) for path in required if not path.is_file()]
     assert not missing, missing
+
+
+def test_iris_validation_artifacts() -> None:
+    import csv
+    import json
+
+    csv_path = DATA / "iris_center_loss.csv"
+    json_path = DATA / "iris_validation_summary.json"
+    assert csv_path.is_file() and json_path.is_file()
+    rows = list(csv.DictReader(csv_path.open(newline="", encoding="utf-8")))
+    rules = {row["rule"] for row in rows}
+    assert {"near_identity", "wider", "baseline", "stricter"} <= rules
+    summary = json.loads(json_path.read_text())
+    assert summary["dataset"] == "sklearn.datasets.load_iris"
+    assert summary["fisher_approximation_ok"] is True
+    assert abs(float(summary["iris_center_losses"]["near_identity"])) < 1e-8
