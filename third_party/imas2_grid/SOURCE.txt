@@ -1,0 +1,7 @@
+Vendored from https://github.com/AronYoung414/multi-agent-active-perception-grid-world
+Commit: 0eae15604c39efac4d8fe4e5e56fbe20aac5d732
+License: MIT (see LICENSE, Copyright (c) 2025 Chongyang Shi)
+Files copied unmodified: grid_world_example.py, pomdp_grid.py
+Used by examples/imas2_grid/ for the grid, obstacle layout, 9 candidate sensors,
+value-iteration robot policies, and (in tests) the original per-sensor emission
+function as a consistency reference. Paper: arXiv:2510.20009 (AAMAS 2026).

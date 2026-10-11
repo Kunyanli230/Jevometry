@@ -1,0 +1,120 @@
+{
+  "dataset": "synthetic_unit_disk_2d",
+  "theta": {
+    "amplitude": 0.7,
+    "length_scale": 0.35
+  },
+  "geometry": {
+    "n_nodes": 9,
+    "radius": 0.45,
+    "n_edges": 12,
+    "mean_degree": 2.6666666666666665,
+    "grid": "3x3"
+  },
+  "parameters": [
+    "amplitude",
+    "length_scale"
+  ],
+  "core_rules": [
+    "near_identity",
+    "wider",
+    "baseline",
+    "stricter"
+  ],
+  "core_order": "near_identity \u2264 wider \u2264 baseline \u2264 stricter",
+  "core_order_holds": true,
+  "fisher_approximation_ok": true,
+  "center_tr_loss_ascending": [
+    {
+      "rule": "near_identity",
+      "tr_loss": 8.881784197001252e-16
+    },
+    {
+      "rule": "quarantine_wider",
+      "tr_loss": 1.7843922509324819
+    },
+    {
+      "rule": "wider",
+      "tr_loss": 1.8195238073042825
+    },
+    {
+      "rule": "baseline",
+      "tr_loss": 1.83272756850074
+    },
+    {
+      "rule": "quarantine_review",
+      "tr_loss": 1.8749102993656879
+    },
+    {
+      "rule": "coarse_binary",
+      "tr_loss": 2.2460792447924542
+    },
+    {
+      "rule": "stricter",
+      "tr_loss": 2.833293193786017
+    }
+  ],
+  "unit_disk_center_losses": {
+    "baseline": 1.83272756850074,
+    "stricter": 2.833293193786017,
+    "wider": 1.8195238073042825,
+    "quarantine_review": 1.8749102993656879,
+    "quarantine_wider": 1.7843922509324819,
+    "coarse_binary": 2.2460792447924542,
+    "near_identity": 8.881784197001252e-16
+  },
+  "vs_cleaning_center": [
+    {
+      "rule": "baseline",
+      "unit_disk_tr_loss": 1.83272756850074,
+      "cleaning_tr_loss": 3.0337626777212012,
+      "abs_diff": 1.2010351092204612
+    },
+    {
+      "rule": "stricter",
+      "unit_disk_tr_loss": 2.833293193786017,
+      "cleaning_tr_loss": 3.4219979823045907,
+      "abs_diff": 0.5887047885185739
+    },
+    {
+      "rule": "wider",
+      "unit_disk_tr_loss": 1.8195238073042825,
+      "cleaning_tr_loss": 3.013275856625938,
+      "abs_diff": 1.1937520493216554
+    },
+    {
+      "rule": "quarantine_review",
+      "unit_disk_tr_loss": 1.8749102993656879,
+      "cleaning_tr_loss": 2.2653748448857267,
+      "abs_diff": 0.39046454552003884
+    },
+    {
+      "rule": "quarantine_wider",
+      "unit_disk_tr_loss": 1.7843922509324819,
+      "cleaning_tr_loss": 2.1602041370592833,
+      "abs_diff": 0.3758118861268014
+    },
+    {
+      "rule": "coarse_binary",
+      "unit_disk_tr_loss": 2.2460792447924542,
+      "cleaning_tr_loss": 3.712157171267242,
+      "abs_diff": 1.4660779264747879
+    },
+    {
+      "rule": "near_identity",
+      "unit_disk_tr_loss": 8.881784197001252e-16,
+      "cleaning_tr_loss": -8.881784197001252e-16,
+      "abs_diff": 1.7763568394002505e-15
+    }
+  ],
+  "artifacts": {
+    "csv": "papers/coord-fisher/data/unit_disk_center_loss.csv",
+    "json": "papers/coord-fisher/data/unit_disk_validation_summary.json"
+  },
+  "notes": [
+    "\u03b8 = (amplitude, length_scale) of a Gaussian bump on [0,1]\u00b2; centre fixed.",
+    "N=9 motes on a 3\u00d73 grid; unit-disk R=0.45; role agents from energy/roughness.",
+    "Same seven AggregationMap rules as cleaning (sensor semantic map in system.py).",
+    "Phase-1 synthetic only; IBRL subsample is phase 2."
+  ]
+}

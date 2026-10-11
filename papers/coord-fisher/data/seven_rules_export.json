@@ -1,0 +1,20 @@
+{
+  "n_rules": 7,
+  "rules": [
+    "baseline",
+    "stricter",
+    "wider",
+    "quarantine_review",
+    "quarantine_wider",
+    "coarse_binary",
+    "near_identity"
+  ],
+  "includes_quarantine_wider": true,
+  "artifacts": [
+    "data/center_summary.json",
+    "data/rule_loss_grid.csv",
+    "figures/fig_loss_center.png",
+    "figures/fig_action_masses.png"
+  ],
+  "note": "paper_experiments.py re-run; all listed artifacts include seven RULE_SPECS entries."
+}

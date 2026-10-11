@@ -1,0 +1,8 @@
+Intel Berkeley Research Lab (IBRL) sensor data
+Source: https://db.csail.mit.edu/labdata/labdata.html
+Mote locations: ibrl_mote_locs.txt (mote id, x meters, y meters; upper-right origin).
+Readings: ibrl_subsample.tsv — from data.txt.gz, date 2004-03-01 hours 08:00–14:00,
+filtered temperature∈[10,35]°C, humidity∈[0,100]%, voltage∈[2.2,3.0];
+12 spatially farthest-point motes × ≤40 readings each (numpy seed=42).
+Full dump ~2.3M rows / 54 motes (2004-02-28–2004-04-05); only this TSV is committed.
+Attribution: Intel Berkeley Research Lab / MIT CSAIL public labdata dump.

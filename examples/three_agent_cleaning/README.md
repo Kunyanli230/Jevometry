@@ -71,3 +71,16 @@ under this same declared joint. These values are local properties of this
 illustrative model, not empirical accuracy or calibration estimates. No CRLB
 is claimed because this example does not declare an observation likelihood
 and sampling contract.
+
+## Compare coordination rules (Fisher loss)
+
+Holding the three agents and declared product joint fixed, compare pure
+AggregationMaps by information loss:
+
+```bash
+uv run python examples/three_agent_cleaning/compare_rules.py
+uv run python examples/three_agent_cleaning/paper_experiments.py
+```
+
+Publication tables and figures land under `papers/coord-fisher/`. See that
+folder's README for the paper draft.

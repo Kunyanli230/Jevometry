@@ -1,0 +1,65 @@
+{
+  "dataset": "sklearn.datasets.load_iris",
+  "center": {
+    "evidence": 0.47071186440677965,
+    "ambiguity": 0.46225000000000005
+  },
+  "features": [
+    "petal length (cm)",
+    "petal width (cm)"
+  ],
+  "n_samples": 150,
+  "core_rules": [
+    "near_identity",
+    "wider",
+    "baseline",
+    "stricter"
+  ],
+  "core_order": "near_identity \u2264 wider \u2264 baseline \u2264 stricter",
+  "core_order_holds": false,
+  "fisher_approximation_ok": true,
+  "iris_center_losses": {
+    "baseline": 16.426787130532727,
+    "stricter": 15.97008815454041,
+    "wider": 15.716871547704311,
+    "quarantine_review": 15.105411074296434,
+    "quarantine_wider": 13.507172770351096,
+    "coarse_binary": 18.474552171046813,
+    "near_identity": 0.0
+  },
+  "vs_synthetic_center": [
+    {
+      "rule": "near_identity",
+      "iris_tr_loss": 0.0,
+      "synthetic_tr_loss": -8.881784197001252e-16,
+      "abs_diff": 8.881784197001252e-16
+    },
+    {
+      "rule": "wider",
+      "iris_tr_loss": 15.716871547704311,
+      "synthetic_tr_loss": 3.013275856625938,
+      "abs_diff": 12.703595691078373
+    },
+    {
+      "rule": "baseline",
+      "iris_tr_loss": 16.426787130532727,
+      "synthetic_tr_loss": 3.0337626777212012,
+      "abs_diff": 13.393024452811526
+    },
+    {
+      "rule": "stricter",
+      "iris_tr_loss": 15.97008815454041,
+      "synthetic_tr_loss": 3.4219979823045907,
+      "abs_diff": 12.548090172235819
+    }
+  ],
+  "artifacts": {
+    "csv": "papers/coord-fisher/data/iris_center_loss.csv",
+    "json": "papers/coord-fisher/data/iris_validation_summary.json"
+  },
+  "notes": [
+    "\u03b8 = MinMax-scaled petal length/width; centre = feature means.",
+    "Agents: logistic applicability (setosa\u2192false), multinomial repair\u2190species,",
+    "multinomial risk\u2190species-confidence tertiles; same AggregationMaps as synthetic twin."
+  ]
+}

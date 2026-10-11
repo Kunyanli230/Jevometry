@@ -1,0 +1,116 @@
+{
+  "unit_disk": {
+    "bed": "unit_disk",
+    "theta": {
+      "amplitude": 0.7,
+      "length_scale": 0.35
+    },
+    "parameters": [
+      "amplitude",
+      "length_scale"
+    ],
+    "utility_definition": "y_share=1 iff applicable==true & repair!=quarantine & risk!=2; H=E[h2(P(y|A))], acc=Bayes accuracy of A\u2192y under joint at \u03b8_centre",
+    "n_joint_outcomes": 18,
+    "rows": {
+      "baseline": {
+        "tr_delta_I": 1.83272756850074,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999999
+      },
+      "stricter": {
+        "tr_delta_I": 2.833293193786017,
+        "cond_entropy": 0.5220659452100898,
+        "accuracy": 0.8406249999999997
+      },
+      "wider": {
+        "tr_delta_I": 1.8195238073042825,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      },
+      "quarantine_review": {
+        "tr_delta_I": 1.8749102993656879,
+        "cond_entropy": 0.31285796664325793,
+        "accuracy": 0.9099999999999998
+      },
+      "quarantine_wider": {
+        "tr_delta_I": 1.7843922509324819,
+        "cond_entropy": 0.23526775184125878,
+        "accuracy": 0.9099999999999997
+      },
+      "coarse_binary": {
+        "tr_delta_I": 2.2460792447924542,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999999
+      },
+      "near_identity": {
+        "tr_delta_I": 8.881784197001252e-16,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      }
+    }
+  },
+  "ibrl": {
+    "bed": "ibrl",
+    "theta": {
+      "temperature": 0.5346981939163499,
+      "humidity": 0.41017181644490297
+    },
+    "parameters": [
+      "temperature",
+      "humidity"
+    ],
+    "utility_definition": "y_share=1 iff applicable==true & repair!=quarantine & risk!=2; H=E[h2(P(y|A))], acc=Bayes accuracy of A\u2192y under joint at \u03b8_centre",
+    "n_joint_outcomes": 18,
+    "mote_ids": [
+      4,
+      11,
+      16,
+      18,
+      20,
+      26,
+      34,
+      39,
+      42,
+      47,
+      50,
+      53
+    ],
+    "rows": {
+      "baseline": {
+        "tr_delta_I": 2.7851075641571743,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      },
+      "stricter": {
+        "tr_delta_I": 3.47410347740803,
+        "cond_entropy": 0.43370470321641863,
+        "accuracy": 0.9066394051352772
+      },
+      "wider": {
+        "tr_delta_I": 2.783767647910989,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      },
+      "quarantine_review": {
+        "tr_delta_I": 3.1011892603715046,
+        "cond_entropy": 0.22576427585805248,
+        "accuracy": 0.9072771390772587
+      },
+      "quarantine_wider": {
+        "tr_delta_I": 3.0415307857560534,
+        "cond_entropy": 0.18608187920498928,
+        "accuracy": 0.9072771390772587
+      },
+      "coarse_binary": {
+        "tr_delta_I": 2.7958155230992254,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999999
+      },
+      "near_identity": {
+        "tr_delta_I": 0.0,
+        "cond_entropy": 0.0,
+        "accuracy": 0.9999999999999998
+      }
+    }
+  }
+}

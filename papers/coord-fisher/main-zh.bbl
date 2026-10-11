@@ -1,0 +1,99 @@
+\begin{thebibliography}{14}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Amari(2016)]{amari2016information}
+Shun-ichi Amari.
+\newblock \emph{Information Geometry and Its Applications}.
+\newblock Springer, 2016.
+
+\bibitem[Corah and Michael(2021)]{corah2021scalable}
+Micah Corah and Nathan Michael.
+\newblock Scalable distributed planning for multi-robot multi-target tracking.
+\newblock In \emph{IEEE/RSJ International Conference on Intelligent Robots and
+  Systems (IROS)}, 2021.
+
+\bibitem[Cover and Thomas(2006)]{cover2006elements}
+Thomas~M. Cover and Joy~A. Thomas.
+\newblock \emph{Elements of Information Theory}.
+\newblock Wiley, 2 edition, 2006.
+
+\bibitem[Fisher(1925)]{fisher1925theory}
+R.~A. Fisher.
+\newblock Theory of statistical estimation.
+\newblock \emph{Mathematical Proceedings of the Cambridge Philosophical
+  Society}, 22\penalty0 (5):\penalty0 700--725, 1925.
+
+\bibitem[{Jevometry maintainers}(2026)]{jevometry2026}
+{Jevometry maintainers}.
+\newblock Jevometry: Information-geometric analysis of agent systems.
+\newblock Software library, 2026.
+\newblock https://github.com/Kunyanli230/Jevometry.
+
+\bibitem[Krause et~al.(2008)Krause, Singh, and Guestrin]{krause2008near}
+Andreas Krause, Ajit Singh, and Carlos Guestrin.
+\newblock Near-optimal sensor placements in gaussian processes: Theory,
+  efficient algorithms and empirical studies.
+\newblock In \emph{Journal of Machine Learning Research}, volume~9, pages
+  235--284, 2008.
+
+\bibitem[Lauri and Oliehoek(2020)]{lauri2020prediction}
+Mikko Lauri and Frans~A. Oliehoek.
+\newblock Multi-agent active perception with prediction rewards.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2020.
+
+\bibitem[Lauri et~al.(2020)Lauri, Pajarinen, and Peters]{lauri2020decpomdp}
+Mikko Lauri, Joni Pajarinen, and Jan Peters.
+\newblock Multi-agent active information gathering in discrete and
+  continuous-state decentralized {POMDP}s by policy graph improvement.
+\newblock \emph{Autonomous Agents and Multi-Agent Systems}, 34:\penalty0 42,
+  2020.
+\newblock \doi{10.1007/s10458-020-09467-6}.
+
+\bibitem[Molloy and Nair(2023)]{molloy2023smoother}
+Timothy~L. Molloy and Girish~N. Nair.
+\newblock Smoother entropy for active state trajectory estimation and
+  obfuscation in {POMDP}s.
+\newblock \emph{IEEE Transactions on Automatic Control}, 68\penalty0
+  (6):\penalty0 3550--3565, 2023.
+
+\bibitem[Nemhauser et~al.(1978)Nemhauser, Wolsey, and
+  Fisher]{nemhauser1978analysis}
+George~L. Nemhauser, Laurence~A. Wolsey, and Marshall~L. Fisher.
+\newblock An analysis of approximations for maximizing submodular set
+  functions---{I}.
+\newblock \emph{Mathematical Programming}, 14\penalty0 (1):\penalty0 265--294,
+  1978.
+
+\bibitem[Oliehoek and Amato(2016)]{oliehoek2016decpomdp}
+Frans~A. Oliehoek and Christopher Amato.
+\newblock \emph{A Concise Introduction to Decentralized {POMDP}s}.
+\newblock Springer, 2016.
+
+\bibitem[Olkin et~al.(2024)Olkin, Parimi, and Williams]{olkin2024vulcan}
+Jake Olkin, Viraj Parimi, and Brian Williams.
+\newblock Multi-agent vulcan: An information-driven multi-agent path finding
+  approach.
+\newblock In \emph{IEEE/RSJ International Conference on Intelligent Robots and
+  Systems (IROS)}, 2024.
+
+\bibitem[Shi et~al.(2026)Shi, Suttle, Dorothy, and Fu]{shi2026imas2}
+Chongyang Shi, Wesley~A. Suttle, Michael Dorothy, and Jie Fu.
+\newblock {IMAS}$^2$: Joint agent selection and information-theoretic
+  coordinated perception in dec-{POMDP}s.
+\newblock In \emph{Proceedings of the 25th International Conference on
+  Autonomous Agents and Multiagent Systems (AAMAS 2026)}, 2026.
+\newblock arXiv:2510.20009; AAMAS 2026 (Paphos).
+
+\bibitem[Zamir(1998)]{zamir1998fisherdpi}
+Ram Zamir.
+\newblock A proof of the fisher information inequality via a data processing
+  argument.
+\newblock \emph{IEEE Transactions on Information Theory}, 44\penalty0
+  (3):\penalty0 1246--1250, 1998.
+
+\end{thebibliography}

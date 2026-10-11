@@ -1,0 +1,46 @@
+{
+  "center": {
+    "evidence": 0.7,
+    "ambiguity": 0.3
+  },
+  "rules": [
+    "quarantine_review",
+    "quarantine_wider"
+  ],
+  "n_actions_review": 3,
+  "n_actions_wider": 4,
+  "actions_only_in_review": [
+    "auto_fix"
+  ],
+  "actions_only_in_wider": [
+    "auto_impute",
+    "auto_normalize"
+  ],
+  "largest_mass_deltas": [
+    {
+      "action": "auto_fix",
+      "quarantine_review_mass": 0.23600000000000004,
+      "quarantine_wider_mass": 0.0,
+      "wider_minus_review": -0.23600000000000004
+    },
+    {
+      "action": "auto_normalize",
+      "quarantine_review_mass": 0.0,
+      "quarantine_wider_mass": 0.23600000000000004,
+      "wider_minus_review": 0.23600000000000004
+    },
+    {
+      "action": "human_review",
+      "quarantine_review_mass": 0.3528000000000001,
+      "quarantine_wider_mass": 0.16400000000000003,
+      "wider_minus_review": -0.18880000000000008
+    },
+    {
+      "action": "auto_impute",
+      "quarantine_review_mass": 0.0,
+      "quarantine_wider_mass": 0.18880000000000005,
+      "wider_minus_review": 0.18880000000000005
+    }
+  ],
+  "source_csv": "papers/coord-fisher/data/quarantine_action_mass_compare.csv"
+}
