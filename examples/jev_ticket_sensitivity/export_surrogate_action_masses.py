@@ -8,7 +8,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from ticket_system import build_declared_joint, build_nodes, build_rule_maps
+from ticket_system import (
+    LOGIT_SCALE,
+    PROB_FLOOR,
+    build_declared_joint,
+    build_nodes,
+    build_rule_maps,
+)
 from jevometry.systems.pushforward import pushforward
 
 POINTS = [
@@ -54,6 +60,8 @@ def evaluate() -> list[dict[str, float | str]]:
                         "mass": mass,
                         "mass_sum": total,
                         "joint_sum": total_joint,
+                        "LOGIT_SCALE": float(LOGIT_SCALE),
+                        "PROB_FLOOR": float(PROB_FLOOR),
                     }
                 )
     return rows
@@ -69,6 +77,8 @@ def write_csv(rows: list[dict[str, float | str]], path: Path) -> None:
         "mass",
         "mass_sum",
         "joint_sum",
+        "LOGIT_SCALE",
+        "PROB_FLOOR",
     ]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)

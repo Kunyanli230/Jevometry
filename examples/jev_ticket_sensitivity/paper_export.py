@@ -326,20 +326,18 @@ def export_surrogate_rule_figures() -> dict:
             and row["rule"] == rule
         }
 
-    action_mass_deltas: dict[str, dict] = {}
+    action_mass_points: dict[str, dict] = {}
     legacy_flip_present = False
     for amount, wait in probe_points:
         baseline = _masses(amount, wait, "baseline")
         stricter = _masses(amount, wait, "stricter")
-        keys = sorted(set(baseline) | set(stricter))
-        deltas = {key: stricter.get(key, 0.0) - baseline.get(key, 0.0) for key in keys}
-        legacy = (
-            deltas.get("priority_queue", 0.0) > 1e-6
-            and deltas.get("standard_queue", 0.0) < -1e-6
-        )
+        delta_priority = stricter.get("priority_queue", 0.0) - baseline.get("priority_queue", 0.0)
+        delta_standard = stricter.get("standard_queue", 0.0) - baseline.get("standard_queue", 0.0)
+        legacy = delta_priority > 1e-6 and delta_standard < -1e-6
         legacy_flip_present = legacy_flip_present or legacy
-        action_mass_deltas[f"({amount:g},{wait:g})"] = {
-            "stricter_minus_baseline": deltas,
+        action_mass_points[f"({amount:g},{wait:g})"] = {
+            "priority_queue_delta": delta_priority,
+            "standard_queue_delta": delta_standard,
             "legacy_flip_present": legacy,
         }
 
@@ -363,7 +361,7 @@ def export_surrogate_rule_figures() -> dict:
         "center_order_holds": order_holds,
         "grid_ok_points": len(ok_points),
         "grid_points": len(all_points),
-        "action_mass_deltas": action_mass_deltas,
+        "action_mass_points": action_mass_points,
         "legacy_flip_present": legacy_flip_present,
         "source_csv": str(GRID_CSV.relative_to(ROOT)),
         "action_mass_csv": str(mass_path.relative_to(ROOT)),
