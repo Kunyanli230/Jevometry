@@ -172,11 +172,25 @@ rewards rather than post-hoc comparing deterministic coordinators.
 Submodular sensor selection and multi-robot tracking maximize mutual
 information or related coverage objectives with greedy
 $(1-1/e)$ guarantees under monotonicity~\citep{krause2008near,corah2021scalable}.
-\citet{shi2026imas2} jointly select agents and synthesize sensing policies
-for mutual-information objectives in Dec-POMDPs. \citet{olkin2024vulcan}
-and \citet{molloy2023smoother} further connect planning to information and
-smoother entropy. Our setting is dual: agents and their local laws are
-\emph{fixed}; only the last-mile map to exchange or quarantine actions varies.
+\citet{olkin2024vulcan} and \citet{molloy2023smoother} further connect planning
+to information and smoother entropy.
+
+\paragraph{IMAS$^2$ (closest Dec-POMDP relative).}
+\citet{shi2026imas2} study \emph{joint} sensing-agent selection and
+decentralized active-perception policy synthesis in Dec-POMDPs
+(\texttt{arXiv:2510.20009}; AAMAS~2026). An inner layer maximizes mutual
+information between latent trajectories (or a secret property) and the team's
+partial observations; an outer layer greedily selects agents under
+submodularity, with a $(1-1/e)$-style guarantee when successive marginal gains
+satisfy their stated ratio condition. Experiments use multi-agent cooperative
+perception in a grid world. That programme \emph{optimizes who senses and how}
+under Dec-POMDP dynamics. Ours is a related but distinct route: we
+\emph{hold} the local agent laws fixed and rank $\theta$-independent
+AggregationMaps by Fisher information loss
+$\Delta_f=I_Z-I_A$ after action aggregation---including quarantine as a
+deterministic safety valve---rather than maximizing mutual information via
+submodular agent selection. The two metrics answer complementary questions
+(select/synthesize sensors vs.\ audit last-mile coordination).
 
 \paragraph{Information geometry for agents.}
 Fisher--Rao geometry supplies local metrics on parametric families of
@@ -556,13 +570,15 @@ $\mathrm{tr}(\Delta_f)$---and, when needed, its parameter-axis diagonals---as a
 cheap offline score when debating rule changes before A/B tests or firmware
 flashes.
 
-\paragraph{Relation to Dec-POMDP rewards.}
+\paragraph{Relation to Dec-POMDP rewards and IMAS$^2$.}
 Prediction rewards and negative-entropy objectives~\citep{lauri2020prediction,lauri2020decpomdp}
-optimize perception policies. Our metric does not replace them; it audits the
-\emph{last} deterministic compression after perception is fixed. In that sense
-it is complementary to IMAS$^2$-style joint selection~\citep{shi2026imas2}:
-selection expands who may observe; coordination ranking asks how much of that
-observation survives the exchange/quarantine layer.
+optimize perception policies. IMAS$^2$~\citep{shi2026imas2} further couples
+agent selection with mutual-information-maximizing sensing policies under
+Dec-POMDP dynamics and submodular greedy selection. Our metric does not replace
+those programmes; it audits the \emph{last} deterministic compression after
+perception (and any selection) is fixed. Selection expands who may observe;
+Fisher $\Delta_f$ ranking asks how much of that observation survives a chosen
+AggregationMap---including quarantine---at the exchange layer.
 
 \paragraph{API constraints.}
 Many agent and mote platforms expose only sampled outcomes plus deterministic

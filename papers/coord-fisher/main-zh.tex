@@ -106,7 +106,10 @@ Fisher 信息为这种敏感性提供了局部、可微的语言~\citep{fisher19
 \citet{lauri2020prediction} 通过个体预测动作，将带预测奖励的多智能体主动感知约化为标准 Dec-POMDP 求解器，并给出去中心化损失界。\citet{lauri2020decpomdp} 在离散与连续状态设定下，用策略图改进优化凸信念依赖奖励（例如负熵）。两条线通常把团队视为固定，并把信息目标折入奖励，而非事后比较确定性协调器。
 
 \paragraph{信息驱动的多智能体感知。}
-子模传感器选择与多机器人跟踪在单调性下以贪婪 $(1-1/e)$ 保证最大化互信息或相关覆盖目标~\citep{krause2008near,corah2021scalable}。\citet{shi2026imas2} 在 Dec-POMDP 中为互信息目标联合选择智能体并综合感知策略。\citet{olkin2024vulcan} 与 \citet{molloy2023smoother} 进一步将规划连接到信息与平滑器熵。我们的设定是对偶的：智能体及其局部律\emph{固定}；仅最后一英里到交换或隔离动作的映射变化。
+子模传感器选择与多机器人跟踪在单调性下以贪婪 $(1-1/e)$ 保证最大化互信息或相关覆盖目标~\citep{krause2008near,corah2021scalable}。\citet{olkin2024vulcan} 与 \citet{molloy2023smoother} 进一步将规划连接到信息与平滑器熵。
+
+\paragraph{IMAS$^2$（最接近的 Dec-POMDP 亲戚）。}
+\citet{shi2026imas2} 研究 Dec-POMDP 中传感智能体选择与去中心化主动感知策略综合的\emph{联合}问题（\texttt{arXiv:2510.20009}；AAMAS~2026）。内层以潜在轨迹（或秘密属性）与团队部分观测之间的互信息为统一目标优化感知策略；外层在子模性下贪婪选择智能体，并在其给出的相继边际收益比条件下给出 $(1-1/e)$ 风格保证。实验为网格世界中的多智能体协同感知。该路线\emph{优化谁去感知以及如何感知}。我们的路线相关但不同：\emph{固定}局部智能体律，按动作聚合后的 Fisher 信息损失 $\Delta_f=I_Z-I_A$ 对与 $\theta$ 无关的 AggregationMap 排序——并以 quarantine 作为确定性安全阀——而不是通过子模智能体选择去最大化互信息。两种度量回答互补问题（选择/综合传感器 vs.\ 审计最后一英里协调）。
 
 \paragraph{面向智能体的信息几何。}
 Fisher--Rao 几何为参数化分布族提供局部度量~\citep{amari2016information}。Jevometry 为智能体系统操作化节点级与系统级 Fisher 诊断~\citep{jevometry2026}。我们使用其推前 \texttt{information\_loss} 原语，且不修改底层 DECLARED\_PRODUCT 构造。
@@ -346,8 +349,8 @@ Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错�
 \paragraph{设计要点。}
 在清洗说明中可实现的三/四动作策略里，将 quarantine 路由到复核比单独的 baseline 或 wider 保留更多 Fisher；将该软化与不同的 auto-normalize/auto-impute 标签组合，在本网格上仍严格更好。实践者在 A/B 测试或固件刷写前讨论规则变更时，可将 $\mathrm{tr}(\Delta_f)$——以及需要时其参数轴对角元——当作廉价的离线评分。
 
-\paragraph{与 Dec-POMDP 奖励的关系。}
-预测奖励与负熵目标~\citep{lauri2020prediction,lauri2020decpomdp} 优化感知策略。我们的度量并不取代它们；它在感知固定之后审计\emph{最后}一道确定性压缩。就此意义而言，它与 IMAS$^2$ 风格的联合选择~\citep{shi2026imas2} 互补：选择扩展谁可以观察；协调排序追问这些观察有多少在交换/隔离层幸存。
+\paragraph{与 Dec-POMDP 奖励及 IMAS$^2$ 的关系。}
+预测奖励与负熵目标~\citep{lauri2020prediction,lauri2020decpomdp} 优化感知策略。IMAS$^2$~\citep{shi2026imas2} 进一步在 Dec-POMDP 动力学与子模贪婪选择下，把智能体选择与最大化互信息的感知策略耦合。我们的度量并不取代这些方案；它在感知（以及任何选择）固定之后，审计\emph{最后}一道确定性压缩。选择扩展谁可以观察；Fisher $\Delta_f$ 排序追问这些观察在选定的 AggregationMap——含 quarantine——下，有多少在交换层幸存。
 
 \paragraph{API 约束。}
 许多智能体与 mote 平台仅暴露采样结果加确定性业务或固件规则。软的、依赖 $\theta$ 的路由器要么需要声明条件动作模型，要么拒绝 DPI 证书——正是 Jevometry AggregationMap 所编码的契约。将本研究扩展到随机协调器是未来工作，并需要额外正则性。

@@ -82,12 +82,12 @@ Jake Olkin, Viraj Parimi, and Brian Williams.
   Systems (IROS)}, 2024.
 
 \bibitem[Shi et~al.(2026)Shi, Suttle, Dorothy, and Fu]{shi2026imas2}
-Kunyan Shi, Wesley Suttle, Michael Dorothy, and Jie Fu.
-\newblock {IMAS}$^2$: Joint agent selection and information-theoretic sensing
-  in dec-{POMDP}s.
-\newblock In \emph{Proceedings of the International Conference on Autonomous
-  Agents and Multiagent Systems (AAMAS)}, 2026.
-\newblock Preprint; venue year as listed by authors.
+Chongyang Shi, Wesley~A. Suttle, Michael Dorothy, and Jie Fu.
+\newblock {IMAS}$^2$: Joint agent selection and information-theoretic
+  coordinated perception in dec-{POMDP}s.
+\newblock In \emph{Proceedings of the 25th International Conference on
+  Autonomous Agents and Multiagent Systems (AAMAS 2026)}, 2026.
+\newblock arXiv:2510.20009; AAMAS 2026 (Paphos).
 
 \bibitem[Zamir(1998)]{zamir1998fisherdpi}
 Ram Zamir.
