@@ -52,14 +52,19 @@ and quantify information loss by the data-processing gap
 $I_Z(\theta)-I_A(\theta)\succeq 0$ between the Fisher information of the
 declared joint and that of its pushforward. Instantiating the framework in the
 Jevometry three-agent data-cleaning council (applicability, repair, risk)
-under a declared product joint, we compare six pure rules---baseline,
-stricter, wider, quarantine-to-review, coarse binary, and a near-identity
-upper bound---on a grid over evidence and ambiguity. At the design centre,
-baseline coordination discards roughly half of $\mathrm{tr}(I_Z)$; softening
-quarantine into human review recovers a substantial fraction of that loss,
-while coarsening to a binary reject/proceed gate loses still more. The
-ordering $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
-\le\mathrm{stricter}$ is stable at the centre and informative across the grid.
+under a declared product joint, we compare seven pure rules---baseline,
+stricter, wider, quarantine-to-review, a hybrid quarantine-wider split,
+coarse binary, and a near-identity upper bound---on a grid over evidence and
+ambiguity. At the design centre, baseline coordination discards roughly half
+of $\mathrm{tr}(I_Z)$; softening quarantine into human review recovers a
+substantial fraction of that loss, and combining that softening with distinct
+auto-normalize/auto-impute labels yields a further improvement that holds on
+the full design grid. Coarsening to a binary reject/proceed gate loses still
+more. The ordering
+$\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
+\le\mathrm{stricter}$
+is stable on every grid cell; parameter-axis decompositions of $\Delta_f$ show
+that quarantine softening primarily preserves the ambiguity direction.
 We discuss design implications for agent councils, API constraints that force
 deterministic maps, and limitations of analytic softmax families relative to
 live decision-model APIs. Accompanying code and reproducible tables ship with
@@ -103,12 +108,15 @@ fixed.
   \item We cast multi-agent coordination-rule comparison as ranking
   $\theta$-independent aggregation maps by Fisher information loss under a
   shared declared joint (Section~\ref{sec:problem}).
-  \item We instantiate six pure rules in the Jevometry cleaning council and
+  \item We instantiate seven pure rules in the Jevometry cleaning council and
   provide a reproducible harness that sweeps a parameter grid, exports
-  CSV/JSON, and emits publication figures (Section~\ref{sec:method}).
+  CSV/JSON (including parameter-axis loss diagonals and fractional losses),
+  and emits publication figures (Section~\ref{sec:method}).
   \item Empirically, at the design centre the baseline rule loses about
-  $44\%$ of $\mathrm{tr}(I_Z)$; a quarantine-to-review softening cuts loss by
-  roughly a quarter relative to baseline; a binary gate loses more than
+  $44\%$ of $\mathrm{tr}(I_Z)$; quarantine-to-review cuts loss by roughly a
+  quarter relative to baseline; a hybrid quarantine-wider rule improves
+  further ($\mathrm{tr}(\Delta)\approx 2.16$) and dominates
+  quarantine-to-review on the full grid; a binary gate loses more than
   stricter mid-risk rejection (Section~\ref{sec:experiments}).
   \item We discuss how this metric complements reward-centric Dec-POMDP
   evaluation and what API constraints (deterministic maps only) imply for
@@ -250,7 +258,7 @@ queried; no actual database write is performed.
 \subsection{Coordination rules}
 \label{sec:rules}
 
-We compare six rules, all pure and $\theta$-independent:
+We compare seven rules, all pure and $\theta$-independent:
 
 \begin{description}
   \item[baseline] Reject if inapplicable, quarantine, or high risk; auto-fix
@@ -260,6 +268,8 @@ We compare six rules, all pure and $\theta$-independent:
   auto labels (\texttt{auto\_normalize}, \texttt{auto\_impute}).
   \item[quarantine\_review] Quarantine routes to human review instead of reject;
   reject only on inapplicable or high risk.
+  \item[quarantine\_wider] Quarantine-to-review combined with wider's dual auto
+  labels: the empirically strongest coarse policy in this study.
   \item[coarse\_binary] Reject under baseline reject conditions; otherwise a
   single \texttt{proceed} action (auto-fix and review collapsed).
   \item[near\_identity] One action label per joint outcome tuple (18 labels):
@@ -276,6 +286,9 @@ additionally records the exact centre $\theta_0$. Outputs:
 \begin{itemize}
   \item \texttt{papers/coord-fisher/data/rule\_loss\_grid.\{csv,json\}}
   \item \texttt{papers/coord-fisher/data/center\_summary.json}
+  \item \texttt{papers/coord-fisher/data/center\_loss\_anisotropy.csv},
+  \texttt{rule\_loss\_anisotropy\_grid.csv}, fractional-loss heatmaps
+  \item \texttt{papers/coord-fisher/data/iteration\_summary.json}
   \item Figures~\ref{fig:center}--\ref{fig:masses} under
   \texttt{papers/coord-fisher/figures/}
 \end{itemize}
@@ -294,21 +307,23 @@ numerical noise), confirming the implementation against the equality case of
 the DPI. Baseline loses $\mathrm{tr}(\Delta)\approx 3.03$ out of
 $\mathrm{tr}(I_Z)\approx 6.84$---about $44\%$. Wider slightly improves on
 baseline by preserving distinct auto paths. Stricter mid-risk rejection
-increases loss. Softening quarantine into review yields the largest practical
-gain among coarse three/four-action policies
-($\mathrm{tr}(\Delta)\approx 2.27$). Collapsing to a binary gate is worst
-among the listed rules ($\approx 3.71$).
+increases loss. Softening quarantine into review yields a large practical gain
+($\mathrm{tr}(\Delta)\approx 2.27$); stacking that softening with wider's dual
+auto labels (\texttt{quarantine\_wider}) improves further to
+$\approx 2.16$ and is the best non-identity coarse policy here. Collapsing to
+a binary gate is worst among the listed rules ($\approx 3.71$).
 
 \begin{table}[t]
 \centering
-\caption{Fisher traces at centre $\theta_0=(0.7,0.3)$. $|A|$ is the number of
-actions with positive mass under the pushforward.}
+\caption{Fisher traces at centre $\theta_0=(0.7,0.3)$, sorted by ascending
+loss. $|A|$ is the number of actions with positive mass under the pushforward.}
 \label{tab:center}
 \begin{tabular}{lrrrrl}
 \toprule
 Rule & $\mathrm{tr}(I_Z)$ & $\mathrm{tr}(I_A)$ & $\mathrm{tr}(\Delta)$ & $|A|$ & Status \\
 \midrule
 near\_identity & 6.8418 & 6.8418 & 0.0000 & 18 & ok \\
+quarantine\_wider & 6.8418 & 4.6816 & 2.1602 & 4 & ok \\
 quarantine\_review & 6.8418 & 4.5764 & 2.2654 & 3 & ok \\
 wider & 6.8418 & 3.8285 & 3.0133 & 4 & ok \\
 baseline & 6.8418 & 3.8080 & 3.0338 & 3 & ok \\
@@ -328,9 +343,15 @@ The core ordering highlighted in prior exploratory work remains:
   \;\le\;
   \mathrm{stricter}
 \end{equation*}
-at the centre (numerical tolerances $10^{-9}$). Quarantine-to-review inserts
-\emph{below} wider on the loss axis, and coarse binary sits \emph{above}
-stricter---both are informative deviations from the original four-rule story.
+on \emph{every} cell of the $8\times 8$ design grid ($64/64$), not only at the
+centre (numerical tolerances $10^{-9}$). Quarantine-to-review inserts
+\emph{below} wider on the loss axis; \texttt{quarantine\_wider} inserts still
+lower and satisfies
+$\mathrm{tr}(\Delta_{\mathrm{quarantine\_wider}})
+\le\mathrm{tr}(\Delta_{\mathrm{quarantine\_review}})$
+on $65/65$ recorded centre-and-grid evaluations. Coarse binary sits
+\emph{above} stricter---an informative deviation from the original four-rule
+story.
 
 \begin{figure}[t]
 \centering
@@ -380,6 +401,33 @@ parameter directions.
 \label{fig:masses}
 \end{figure}
 
+\subsection{Anisotropy and the quarantine-wider mechanism}
+\label{sec:anisotropy}
+
+Trace summaries hide which parameter direction is discarded. At $\theta_0$, the
+diagonal entries of $\Delta_f$ in the $(\mathrm{evidence},\mathrm{ambiguity})$
+basis show that \texttt{quarantine\_review} cuts ambiguity-axis loss roughly in
+half relative to baseline ($\Delta_{aa}\approx 0.95$ vs $\approx 1.69$) while
+evidence-axis loss stays comparable. Relative losses
+$\mathrm{tr}(\Delta)/\mathrm{tr}(I_Z)$ preserve the same ranking where
+$I_Z(\theta)$ varies across the grid.
+
+Pushforward masses explain the hybrid gain: relative to
+\texttt{quarantine\_review}, \texttt{quarantine\_wider} replaces a single
+\texttt{auto\_apply} atom by distinct \texttt{auto\_normalize} and
+\texttt{auto\_impute} atoms and moves additional mass out of
+\texttt{human\_review} into \texttt{auto\_impute}; \texttt{reject} mass is
+unchanged. Finer auto fibres retain score rows that the coarser review rule
+had merged.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\linewidth]{figures/fig_frac_loss_heatmap.png}
+\caption{Fractional loss $\mathrm{tr}(\Delta)/\mathrm{tr}(I_Z)$ over the
+evidence$\times$ambiguity grid for non-identity rules.}
+\label{fig:frac}
+\end{figure}
+
 \section{Discussion}
 \label{sec:discussion}
 
@@ -394,11 +442,12 @@ harder problem than inverting $Z$.
 
 \paragraph{Design takeaway.}
 Among implementable three/four-action policies, routing quarantine to review
-retained the most Fisher in this model, beating both the historical baseline
-and the wider auto-impute split. Binary proceed/reject gates are convenient
-operationally but costly informationally. Practitioners can treat
-$\mathrm{tr}(\Delta_f)$ as a cheap offline score when debating rule changes
-before A/B tests.
+retained more Fisher than baseline or wider alone; combining that softening
+with distinct auto-normalize/auto-impute labels is strictly better still on
+this grid. Binary proceed/reject gates are convenient operationally but costly
+informationally. Practitioners can treat $\mathrm{tr}(\Delta_f)$---and, when
+needed, its parameter-axis diagonals---as a cheap offline score when debating
+rule changes before A/B tests.
 
 \paragraph{Relation to Dec-POMDP rewards.}
 Prediction rewards and negative-entropy objectives~\citep{lauri2020prediction,lauri2020decpomdp}
@@ -422,9 +471,9 @@ stochastic coordinators is future work and needs additional regularity.
   \item Agent distributions are hand-specified analytic softmax families, not
   fitted live decision models. Absolute numbers are illustrative.
   \item Conditional independence is declared, not tested.
-  \item Trace summaries ignore anisotropic structure in $I_Z$ and $I_A$; full
-  matrix comparisons or parameter-wise CRLB-style reads would need an
-  observation likelihood contract this example does not provide.
+  \item We report parameter-axis diagonals and eigenvalues of $\Delta_f$, but
+  full CRLB-style reads would still need an observation likelihood contract
+  this example does not provide.
   \item Action alphabets differ across rules; $\mathrm{tr}(I_A)$ comparisons
   remain meaningful as retained information about $\theta$, but
   interpretations that treat $|A|$ as utility are out of scope.
@@ -439,10 +488,11 @@ We proposed ranking multi-agent coordination rules by Fisher information loss
 under a shared declared joint and demonstrated the approach on a reproducible
 three-agent cleaning council. Holding perception fixed, deterministic
 coordinators can discard on the order of half the joint Fisher trace; small
-rule edits (quarantine handling, auto-path splitting, risk thresholds) move
-that loss by amounts that are easy to measure offline. The accompanying
-harness and figures are intended as a template for auditing production
-if-then councils before changing live traffic.
+rule edits (quarantine handling, auto-path splitting, risk thresholds) and
+their combinations move that loss by amounts that are easy to measure offline,
+including along individual parameter axes. The accompanying harness and
+figures are intended as a template for auditing production if-then councils
+before changing live traffic.
 
 Future work includes (i) replacing analytic agents with TypeSafe / live
 decision-model Jacobians under the same AggregationMap interface, (ii)
