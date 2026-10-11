@@ -122,9 +122,8 @@ def ensure_center_on_grid(rows: list[dict[str, object]]) -> list[dict[str, objec
 
 def fig_loss_at_center(centre: list[dict[str, object]]) -> None:
     FIG_DIR.mkdir(parents=True, exist_ok=True)
-    order = [r[0] for r in __import__("system", fromlist=["RULE_SPECS"]).RULE_SPECS]
     by_rule = {str(row["rule"]): row for row in centre}
-    names = [name for name in order if name in by_rule]
+    names = sorted(by_rule, key=lambda name: float(by_rule[name]["tr_loss"]))
     losses = [float(by_rule[name]["tr_loss"]) for name in names]
     retained = [float(by_rule[name]["tr_I_A"]) for name in names]
 
@@ -228,7 +227,11 @@ def fig_loss_curves(rows: list[dict[str, object]]) -> None:
 def fig_action_masses(centre: list[dict[str, object]]) -> None:
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     # Collect union of action labels (exclude near_identity — too many labels).
-    rules = [r for r in STACK_RULES]
+    by_rule_pre = {str(row["rule"]): row for row in centre}
+    rules = sorted(
+        [r for r in STACK_RULES if r in by_rule_pre],
+        key=lambda name: float(by_rule_pre[name]["tr_loss"]),
+    )
     label_set: list[str] = []
     for row in centre:
         if row["rule"] not in rules:
