@@ -1,0 +1,217 @@
+{
+  "upstream": {
+    "repo": "https://github.com/AronYoung414/multi-agent-active-perception-grid-world",
+    "commit": "0eae15604c39efac4d8fe4e5e56fbe20aac5d732",
+    "license": "MIT"
+  },
+  "theta": [
+    "prior_logit",
+    "slip"
+  ],
+  "horizon_sensing_steps": 14,
+  "obs_noise": 0.5,
+  "placement_main": [
+    2,
+    3,
+    4,
+    6,
+    8
+  ],
+  "seed": 0,
+  "n_trajectories": 500,
+  "rank_agreement": [
+    {
+      "policy_type": "fixed_orientation",
+      "dynamics": "deterministic",
+      "sensor_range": "small",
+      "spearman_dI_vs_entropy": 0.6605782590758165,
+      "spearman_dI_vs_neg_accuracy": 0.5097970656333187
+    },
+    {
+      "policy_type": "fixed_orientation",
+      "dynamics": "deterministic",
+      "sensor_range": "large",
+      "spearman_dI_vs_entropy": 0.8214285714285715,
+      "spearman_dI_vs_neg_accuracy": 0.8420413371357598
+    },
+    {
+      "policy_type": "fixed_orientation",
+      "dynamics": "stochastic",
+      "sensor_range": "small",
+      "spearman_dI_vs_entropy": 0.9285714285714288,
+      "spearman_dI_vs_neg_accuracy": 0.854686736757637
+    },
+    {
+      "policy_type": "fixed_orientation",
+      "dynamics": "stochastic",
+      "sensor_range": "large",
+      "spearman_dI_vs_entropy": 0.8928571428571429,
+      "spearman_dI_vs_neg_accuracy": 0.8571428571428573
+    },
+    {
+      "policy_type": "random_orientation",
+      "dynamics": "deterministic",
+      "sensor_range": "small",
+      "spearman_dI_vs_entropy": 0.6546536707079773,
+      "spearman_dI_vs_neg_accuracy": 0.6923450994227358
+    },
+    {
+      "policy_type": "random_orientation",
+      "dynamics": "deterministic",
+      "sensor_range": "large",
+      "spearman_dI_vs_entropy": 0.8214285714285715,
+      "spearman_dI_vs_neg_accuracy": 0.545544725589981
+    },
+    {
+      "policy_type": "random_orientation",
+      "dynamics": "stochastic",
+      "sensor_range": "small",
+      "spearman_dI_vs_entropy": 0.8571428571428573,
+      "spearman_dI_vs_neg_accuracy": 0.8420413371357598
+    },
+    {
+      "policy_type": "random_orientation",
+      "dynamics": "stochastic",
+      "sensor_range": "large",
+      "spearman_dI_vs_entropy": 0.8928571428571429,
+      "spearman_dI_vs_neg_accuracy": 0.8468812149338255
+    }
+  ],
+  "placements": {
+    "deterministic_small": {
+      "dynamics": "deterministic",
+      "sensor_range": "small",
+      "n_placements": 126,
+      "spearman": 0.597156355455568,
+      "top5_overlap": 1,
+      "fisher_top1": {
+        "placement": "2-4-5-6-8",
+        "cond_entropy": 0.3574083571780819,
+        "accuracy": 0.854
+      },
+      "mi_top1": {
+        "placement": "2-3-4-6-8",
+        "cond_entropy": 0.3260706764999404,
+        "accuracy": 0.846
+      },
+      "fisher_top5": [
+        "2-4-5-6-8",
+        "2-4-5-7-8",
+        "2-3-4-5-8",
+        "2-3-4-5-6",
+        "2-4-5-6-7"
+      ],
+      "mi_top5": [
+        "2-3-4-6-8",
+        "2-4-6-7-8",
+        "1-2-4-6-8",
+        "2-4-5-6-8",
+        "1-3-4-6-8"
+      ],
+      "imas2_reported_pick": {
+        "placement": "2-3-4-6-8",
+        "cond_entropy": 0.3260706764999404,
+        "accuracy": 0.846,
+        "fisher_rank": 13,
+        "mi_rank": 1
+      },
+      "selection_time_s": {
+        "fisher_all_126": 3.7593138217926025,
+        "mi_mc_all_126": 53.138330936431885
+      },
+      "training_time_s": 0.0,
+      "mi_estimator": "Monte-Carlo 1 - mean H(tau|y), M=500, seed=1, near_identity fusion",
+      "fisher_estimator": "\u03a3_t tr I_Z(\u03b8=(prior_logit,slip)) of 5-sensor categorical report"
+    },
+    "stochastic_small": {
+      "dynamics": "stochastic",
+      "sensor_range": "small",
+      "n_placements": 126,
+      "spearman": -0.152389951256093,
+      "top5_overlap": 0,
+      "fisher_top1": {
+        "placement": "0-2-3-6-7",
+        "cond_entropy": 0.7619358929607187,
+        "accuracy": 0.718
+      },
+      "mi_top1": {
+        "placement": "1-2-4-6-8",
+        "cond_entropy": 0.5414752577407362,
+        "accuracy": 0.808
+      },
+      "fisher_top5": [
+        "0-2-3-6-7",
+        "1-2-3-6-7",
+        "2-3-5-6-7",
+        "2-3-6-7-8",
+        "2-3-4-6-7"
+      ],
+      "mi_top5": [
+        "1-2-4-6-8",
+        "2-3-4-6-8",
+        "2-4-6-7-8",
+        "2-4-5-6-8",
+        "0-2-4-6-8"
+      ],
+      "imas2_reported_pick": {
+        "placement": "2-3-4-6-8",
+        "cond_entropy": 0.5425717463550052,
+        "accuracy": 0.824,
+        "fisher_rank": 54,
+        "mi_rank": 2
+      },
+      "selection_time_s": {
+        "fisher_all_126": 4.58206033706665,
+        "mi_mc_all_126": 52.679489612579346
+      },
+      "training_time_s": 0.0,
+      "mi_estimator": "Monte-Carlo 1 - mean H(tau|y), M=500, seed=1, near_identity fusion",
+      "fisher_estimator": "\u03a3_t tr I_Z(\u03b8=(prior_logit,slip)) of 5-sensor categorical report"
+    }
+  },
+  "retrained_imas2": "not available (see blockers)",
+  "reported_imas2": {
+    "source": "AAMAS_2026.pdf in upstream repo / arXiv:2510.20009 (REPORTED, not rerun)",
+    "selected_sensors_det_small": [
+      2,
+      3,
+      4,
+      6,
+      8
+    ],
+    "final_cond_entropy_det_small_5sensors": 0.367,
+    "accuracy_det_small": 0.88,
+    "table1_stochastic_large": {
+      "IMAS2": {
+        "entropy": 0.493,
+        "accuracy": 0.86,
+        "time_per_iter_s": 1.58
+      },
+      "IPG_fixed": {
+        "entropy": 0.525,
+        "accuracy": 0.755,
+        "time_per_iter_s": 7.62
+      },
+      "IPG_random": {
+        "entropy": 0.558,
+        "accuracy": 0.707,
+        "time_per_iter_s": 7.63
+      },
+      "IPG_visibility": {
+        "entropy": 0.502,
+        "accuracy": 0.841,
+        "time_per_iter_s": 7.63
+      }
+    },
+    "training_setup": "M=100, T=15, N=1000 iters/sensor, lr=1e-3, ~1.3 s/iter (i7-12700)"
+  },
+  "caveats": [
+    "Fisher on \u03b8=(prior_logit, slip) is a local-sensitivity surrogate, not mutual information.",
+    "\u0394I is a time-summed per-step snapshot Fisher (ignores cross-step correlation).",
+    "Deterministic dynamics: slip derivative by forward FD at slip=0 (boundary).",
+    "Per-sensor categories adv/nom/unc from fixed centre occupancy LR (\u03b8-independent).",
+    "Evaluator: exact HMM forward filter on fused labels, same seeds/trajectories for every rule.",
+    "Retrained rows: reduced IMAS\u00b2 (fixed reported order, fewer iters); obs resampled in our evaluator given logged states/actions.",
+    "Reported IMAS\u00b2 numbers are copied from the paper and never mixed with rerun numbers."
+  ]
+}

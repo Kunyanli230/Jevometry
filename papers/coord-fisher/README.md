@@ -151,6 +151,30 @@ uv run pytest tests/unit/test_ibrl_artifacts.py -q
 | `data/ibrl_center_loss.csv` | Per-rule centre tr loss |
 | `data/ibrl_validation_summary.json` | fisher_ok, mote ids, vs unit-disk |
 
+## IMAS² grid-world comparison (phase 3)
+
+Upstream: https://github.com/AronYoung414/multi-agent-active-perception-grid-world
+(MIT, commit `0eae156`; vendored files + LICENSE in `third_party/imas2_grid/`).
+θ = (adversary prior logit, slip) — a local-sensitivity surrogate, **not** MI.
+
+```bash
+uv run python examples/imas2_grid/experiments.py
+uv run pytest tests/unit/test_imas2_grid_artifacts.py -q
+```
+
+| Path | Role |
+| --- | --- |
+| `data/imas2_rule_comparison.csv` | rule × policy_type × dynamics × sensor_range: tr_delta_I, cond_entropy, accuracy, seed, n_trajectories, selection_time_s, training_time_s |
+| `data/imas2_placements.csv` | 126 placements (det., small): fisher_score, mi_score, entropy, accuracy |
+| `data/imas2_placements_stochastic.csv` | same, stochastic |
+| `data/imas2_summary.json` | Spearman / top-5 overlap, timing, retrain metadata, paper-REPORTED numbers (kept separate) |
+
+Retrained rows (`policy_type=retrained_imas2`) come from a reduced local rerun of
+upstream `model_training.py` in an isolated torch venv (`/tmp/imas2-run`, not a
+project dependency): reported selection order 4,2,8,6,3, fewer iterations than
+the paper's N=1000. Full upstream pipeline (35 sensor trainings × 1000 iters) was
+not rerun on CPU.
+
 ## Iris real-data check
 
 ```bash
