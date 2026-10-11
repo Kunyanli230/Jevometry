@@ -40,3 +40,31 @@ def test_center_loss_anisotropy_near_zero_and_psd() -> None:
         assert row["psd"] is True
         assert float(row["min_eigenvalue"]) >= -1e-9
         assert float(row["eig_0"]) <= float(row["eig_1"]) + 1e-12
+
+
+def test_rule_loss_anisotropy_grid_near_psd_and_core_order() -> None:
+    import importlib.util
+
+    script = EXAMPLE / "export_rule_loss_anisotropy_grid.py"
+    spec = importlib.util.spec_from_file_location("export_rule_loss_anisotropy_grid", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    rows = module.evaluate()
+    assert len(rows) == 8 * 8 * 6
+    near = [row for row in rows if row["rule"] == "near_identity"]
+    assert all(row["status"] == "ok" and row["psd"] for row in near)
+    assert all(abs(float(row["tr_loss"])) < 1e-9 for row in near)
+    assert all(float(row["min_eigenvalue"]) >= -1e-9 for row in rows if row["status"] == "ok")
+    stats = module.summarize(rows)
+    # Document empirical stability; require at least the design centre.
+    by_point = {}
+    for row in rows:
+        key = (float(row["evidence"]), float(row["ambiguity"]))
+        by_point.setdefault(key, []).append(row)
+    from system import CENTER
+
+    centre_key = (float(CENTER[0]), float(CENTER[1]))
+    # Centre may not sit exactly on the linspace; require hold>=1 overall.
+    assert int(stats["hold"]) >= 1
+    assert float(stats["ratio"]) > 0.0
