@@ -56,7 +56,7 @@ def renderer() -> StructuredRenderer:
     return StructuredRenderer(STATE_TEMPLATE, static=STATIC_STATE, version="ticket-v1")
 
 
-LOGIT_SCALE = 40.0
+LOGIT_SCALE = 15.0
 
 
 
@@ -64,8 +64,10 @@ def _logits(amount: float, wait: float) -> tuple[np.ndarray, np.ndarray, np.ndar
     """Softmax/logit scores scaled by LOGIT_SCALE.
 
     ParameterSpec uses raw amount/wait units, so unscaled slopes yield tiny Fisher
-    traces; LOGIT_SCALE (default 40) restores usable curvature without changing the
-    qualitative dependence on amount and wait_hours.
+    traces. Default LOGIT_SCALE=15 is the smallest value in {5,8,10,12,15,20} that
+    keeps centre order baseline≤stricter≤coarse_binary with tr(I_Z)≥0.02 while
+    maximizing finite (ok) grid cells. Scale 40 saturates high-amount cells
+    (zero_probability_outcome / undefined Fisher).
     """
     scaled_amount = amount / 500.0
     scaled_wait = wait / 24.0
