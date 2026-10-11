@@ -115,3 +115,20 @@ def test_surrogate_rule_loss_grid_near_identity_and_order_ratio() -> None:
     centre_rows = by_point[(250.0, 8.0)]
     assert module.center_order_holds(centre_rows)
     assert hold >= 1
+
+
+def test_surrogate_action_masses_near_identity_conserves() -> None:
+    import importlib.util
+
+    script = EXAMPLE / "export_surrogate_action_masses.py"
+    spec = importlib.util.spec_from_file_location("export_surrogate_action_masses", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    rows = module.evaluate()
+    near = [row for row in rows if row["rule"] == "near_identity"]
+    assert near
+    for row in near:
+        assert abs(float(row["mass_sum"]) - float(row["joint_sum"])) < 1e-12
+    # every near_identity row is a joint atom label with positive or zero mass
+    assert {row["action"] for row in near}
