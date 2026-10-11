@@ -30,8 +30,8 @@ FIG_DIR = PAPER_DIR / "figures"
 EVIDENCE_GRID = np.linspace(0.2, 0.9, 8)
 AMBIGUITY_GRID = np.linspace(0.1, 0.8, 8)
 # Focus curves / heatmaps on a readable subset.
-HEATMAP_RULES = ("baseline", "stricter", "wider", "quarantine_review", "coarse_binary")
-STACK_RULES = ("baseline", "stricter", "wider", "quarantine_review", "coarse_binary")
+HEATMAP_RULES = ("baseline", "stricter", "wider", "quarantine_review", "quarantine_wider", "coarse_binary")
+STACK_RULES = ("baseline", "stricter", "wider", "quarantine_review", "quarantine_wider", "coarse_binary")
 
 
 def _theta_dict(evidence: float, ambiguity: float) -> dict[str, float]:

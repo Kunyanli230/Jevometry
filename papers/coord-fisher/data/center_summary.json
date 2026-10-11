@@ -71,6 +71,24 @@
   {
     "evidence": 0.7,
     "ambiguity": 0.3,
+    "rule": "quarantine_wider",
+    "tr_I_Z": 6.841796379900002,
+    "tr_I_A": 4.681592242840718,
+    "tr_loss": 2.1602041370592833,
+    "status": "ok",
+    "reason_code": null,
+    "n_actions": 4,
+    "action_masses": {
+      "auto_impute": 0.18880000000000005,
+      "auto_normalize": 0.23600000000000004,
+      "human_review": 0.16400000000000003,
+      "reject": 0.4112000000000002
+    },
+    "is_center": true
+  },
+  {
+    "evidence": 0.7,
+    "ambiguity": 0.3,
     "rule": "coarse_binary",
     "tr_I_Z": 6.841796379900002,
     "tr_I_A": 3.12963920863276,

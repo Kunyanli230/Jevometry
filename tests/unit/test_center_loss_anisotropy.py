@@ -26,7 +26,7 @@ def _load_export():
 def test_center_loss_anisotropy_near_zero_and_psd() -> None:
     module = _load_export()
     rows = module.evaluate()
-    assert len(rows) == 6
+    assert len(rows) == 7
     by = {str(row["rule"]): row for row in rows}
     near = by["near_identity"]
     assert near["status"] == "ok"
@@ -51,7 +51,7 @@ def test_rule_loss_anisotropy_grid_near_psd_and_core_order() -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     rows = module.evaluate()
-    assert len(rows) == 8 * 8 * 6
+    assert len(rows) == 8 * 8 * 7
     near = [row for row in rows if row["rule"] == "near_identity"]
     assert all(row["status"] == "ok" and row["psd"] for row in near)
     assert all(abs(float(row["tr_loss"])) < 1e-9 for row in near)
@@ -94,4 +94,19 @@ def test_frac_loss_fields_and_quarantine_lowest_at_centre() -> None:
         if (float(row["evidence"]), float(row["ambiguity"])) == best and row["rule"] != "near_identity"
     ]
     fracs = {str(row["rule"]): float(row["frac_loss"]) for row in centre}
-    assert fracs["quarantine_review"] == min(fracs.values())
+    assert fracs["quarantine_wider"] <= fracs["quarantine_review"] + 1e-12
+    assert fracs["quarantine_wider"] == min(fracs.values())
+
+
+def test_quarantine_wider_centre_loss_leq_quarantine_review() -> None:
+    import importlib.util
+
+    script = EXAMPLE / "export_center_loss_anisotropy.py"
+    spec = importlib.util.spec_from_file_location("export_center_loss_anisotropy", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    rows = module.evaluate()
+    by = {str(row["rule"]): float(row["tr_loss"]) for row in rows}
+    assert "quarantine_wider" in by
+    assert by["quarantine_wider"] <= by["quarantine_review"] + 1e-12

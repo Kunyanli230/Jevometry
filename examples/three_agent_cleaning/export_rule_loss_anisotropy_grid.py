@@ -25,7 +25,7 @@ CSV_PATH = (
     / "rule_loss_anisotropy_grid.csv"
 )
 FIG_DIR = Path(__file__).resolve().parents[2] / "papers" / "coord-fisher" / "figures"
-HEATMAP_RULES = ("baseline", "stricter", "wider", "quarantine_review", "coarse_binary")
+HEATMAP_RULES = ("baseline", "stricter", "wider", "quarantine_review", "quarantine_wider", "coarse_binary")
 
 
 def theta_grid() -> list[dict[str, float]]:
@@ -210,7 +210,8 @@ def main() -> int:
             and row["rule"] != "near_identity"
         ]
     fracs = {str(row["rule"]): float(row["frac_loss"]) for row in centre}
-    assert fracs["quarantine_review"] == min(fracs.values())
+    assert fracs["quarantine_wider"] <= fracs["quarantine_review"] + 1e-12
+    assert fracs["quarantine_wider"] == min(fracs.values())
     print(f"wrote {CSV_PATH} ({len(rows)} rows)")
     print(
         f"core order near≤wider≤baseline≤stricter holds on "

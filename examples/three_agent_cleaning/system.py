@@ -114,6 +114,24 @@ def final_action_quarantine_review(outcome: tuple[str, str, str]) -> str:
     return "human_review"
 
 
+
+def final_action_quarantine_wider(outcome: tuple[str, str, str]) -> str:
+    """Combine quarantine→review softening with wider dual auto labels.
+
+    Reject only on inapplicable or high risk; quarantine goes to human_review;
+    normalize/impute at low risk keep distinct auto_* actions.
+    """
+    applicable, repair, risk = outcome
+    if applicable == "false" or risk == "2":
+        return "reject"
+    if repair == "quarantine":
+        return "human_review"
+    if repair == "normalize" and risk == "0":
+        return "auto_normalize"
+    if repair == "impute" and risk == "0":
+        return "auto_impute"
+    return "human_review"
+
 def final_action_coarse_binary(outcome: tuple[str, str, str]) -> str:
     """Coarse binary gate: reject vs proceed (merges auto_fix and review)."""
     applicable, repair, risk = outcome
@@ -215,6 +233,11 @@ RULE_SPECS: list[tuple[str, RuleFn, str]] = [
         "quarantine_review",
         final_action_quarantine_review,
         "Quarantine routes to human_review instead of reject",
+    ),
+    (
+        "quarantine_wider",
+        final_action_quarantine_wider,
+        "Quarantine→review plus wider dual auto_normalize/auto_impute",
     ),
     (
         "coarse_binary",
