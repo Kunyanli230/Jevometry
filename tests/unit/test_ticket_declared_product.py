@@ -65,3 +65,29 @@ def test_surrogate_masses_match_aggregation_pushforward() -> None:
     assert set(soft) == set(pushed_masses)
     for action, mass in soft.items():
         assert mass == pytest.approx(pushed_masses[action], abs=1e-12)
+
+
+def test_surrogate_rule_loss_ordering_at_center() -> None:
+    nodes = build_nodes()
+    from ticket_system import build_declared_joint, build_rule_maps
+
+    joint_model = build_declared_joint(nodes)
+    joint = joint_model.probabilities(CENTER)
+    jacobian = joint_model.jacobian(CENTER)
+    assert jacobian is not None
+    losses: dict[str, float] = {}
+    for name, aggregation in build_rule_maps(nodes):
+        result = information_loss(
+            joint,
+            jacobian,
+            aggregation,
+            parameter_names=["amount", "wait_hours"],
+        )
+        assert result.status.value == "ok"
+        assert result.psd is True
+        assert result.difference is not None
+        losses[name] = float(np.trace(result.difference))
+    assert losses["near_identity"] == pytest.approx(0.0, abs=1e-10)
+    assert losses["near_identity"] <= losses["baseline"]
+    assert losses["near_identity"] <= losses["stricter"]
+    assert losses["near_identity"] <= losses["coarse_binary"]

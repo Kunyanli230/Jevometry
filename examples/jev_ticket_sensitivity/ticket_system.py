@@ -227,11 +227,7 @@ PARAMETERS = ("amount", "wait_hours")
 def outcome_to_surrogate_action(
     outcome: tuple[str, ...], *, policy: "TicketPolicy | None" = None
 ) -> str:
-    """Map a hard joint outcome to ACTIONS under the declared-product surrogate.
-
-    Matches ``TicketPolicy.action`` on one-hot node outcomes. Used for
-    AggregationMap / information-loss; not production soft-probability routing.
-    """
+    """Baseline hard-outcome map: matches ``TicketPolicy.action`` on one-hots."""
     rule = policy or TicketPolicy()
     request, escalation, impact = outcome
     distribution = {
@@ -247,13 +243,37 @@ def outcome_to_surrogate_action(
     return rule.action(distribution)
 
 
-def build_declared_product_surrogate(
+def rule_baseline(outcome: tuple[str, ...]) -> str:
+    return outcome_to_surrogate_action(outcome)
+
+
+def rule_stricter(outcome: tuple[str, ...]) -> str:
+    """Escalate on true; mid or high impact goes to priority; refund still reviewed."""
+    request, escalation, impact = outcome
+    if escalation == "true":
+        return "escalate"
+    if request == "refund":
+        return "refund_review"
+    if impact in ("1", "2"):
+        return "priority_queue"
+    return "standard_queue"
+
+
+def rule_coarse_binary(outcome: tuple[str, ...]) -> str:
+    """Binary gate: escalate vs proceed."""
+    _, escalation, _ = outcome
+    return "escalate" if escalation == "true" else "proceed"
+
+
+def rule_near_identity(outcome: tuple[str, ...]) -> str:
+    """Upper-bound reference: one label per joint outcome tuple."""
+    return "|".join(outcome)
+
+
+def build_declared_joint(
     nodes: Mapping[str, AnalyticNode],
-    *,
-    policy: "TicketPolicy | None" = None,
-) -> tuple[AnalyticJointModel, AggregationMap]:
-    """Declared product joint + theta-independent AggregationMap onto ACTIONS."""
-    rule = policy or TicketPolicy()
+) -> AnalyticJointModel:
+    """Shared DECLARED_PRODUCT joint (independent of aggregation rule)."""
     node_order = list(nodes)
     outcomes = {name: node.support for name, node in nodes.items()}
     assumptions = [
@@ -280,7 +300,7 @@ def build_declared_product_surrogate(
             PARAMETERS,
         )
 
-    joint = AnalyticJointModel(
+    return AnalyticJointModel(
         node_order=node_order,
         parameter_names=list(PARAMETERS),
         probability_function=probabilities,
@@ -289,13 +309,80 @@ def build_declared_product_surrogate(
         construction_mode=ConstructionMode.DECLARED_PRODUCT,
         assumptions=assumptions,
     )
+
+
+def build_aggregation_map(
+    nodes: Mapping[str, AnalyticNode],
+    rule,
+    *,
+    name: str,
+    description: str,
+) -> AggregationMap:
+    node_order = list(nodes)
+    outcomes = {name_: node.support for name_, node in nodes.items()}
     mapping = {
-        path: outcome_to_surrogate_action(path, policy=rule)
-        for path in product(*(outcomes[name] for name in node_order))
+        path: rule(path) for path in product(*(outcomes[name_] for name_ in node_order))
     }
-    aggregation = AggregationMap(
+    return AggregationMap(name=name, mapping=mapping, description=description)
+
+
+def build_rule_maps(
+    nodes: Mapping[str, AnalyticNode] | None = None,
+) -> list[tuple[str, AggregationMap]]:
+    """Four theta-independent surrogate coordinators for information-loss comparison."""
+    nodes = nodes or build_nodes()
+    return [
+        (
+            "baseline",
+            build_aggregation_map(
+                nodes,
+                rule_baseline,
+                name="surrogate_baseline",
+                description="Baseline hard-outcome TicketPolicy map onto ACTIONS",
+            ),
+        ),
+        (
+            "stricter",
+            build_aggregation_map(
+                nodes,
+                rule_stricter,
+                name="surrogate_stricter",
+                description="Stricter: mid-impact also priority_queue",
+            ),
+        ),
+        (
+            "coarse_binary",
+            build_aggregation_map(
+                nodes,
+                rule_coarse_binary,
+                name="surrogate_coarse_binary",
+                description="Binary escalate vs proceed",
+            ),
+        ),
+        (
+            "near_identity",
+            build_aggregation_map(
+                nodes,
+                rule_near_identity,
+                name="surrogate_near_identity",
+                description="Near-identity: one label per joint outcome",
+            ),
+        ),
+    ]
+
+
+def build_declared_product_surrogate(
+    nodes: Mapping[str, AnalyticNode],
+    *,
+    policy: "TicketPolicy | None" = None,
+) -> tuple[AnalyticJointModel, AggregationMap]:
+    """Declared product joint + baseline AggregationMap (adapter default)."""
+    del policy  # baseline hard map mirrors default TicketPolicy thresholds
+    joint = build_declared_joint(nodes)
+    aggregation = build_aggregation_map(
+        nodes,
+        rule_baseline,
         name="surrogate_ticket_action",
-        mapping=mapping,
         description=(
             "Declared-product surrogate coordinator onto ACTIONS; "
             "not the production soft-probability TicketPolicy routing"
