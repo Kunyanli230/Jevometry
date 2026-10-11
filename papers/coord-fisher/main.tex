@@ -62,7 +62,7 @@ the core order also holds, but both quarantine rules lose more than baseline,
 so the quarantine safety valve pays an information cost and the full ranking
 is data-dependent. On the IMAS$^2$ grid-world benchmark with fixed sensors,
 the Fisher-loss ranking of fusion rules tracks conditional entropy and
-accuracy, while Fisher~$\Delta I$ proves a weak sensor-placement criterion. As a reproducible analytic illustration of the
+accuracy, while Fisher~$\Delta I$ proves a weak sensor-placement criterion. A no-recalibration cross-bed transfer of AggregationMap rankings fails Heath's tongyong and zhengxiang criteria on most of the six directed pairs (Section~\ref{sec:cross-bed}), so the evidence supports within-bed auditing only. As a reproducible analytic illustration of the
 same AggregationMap programme, we also use the Jevometry three-agent data-cleaning
 council (applicability, repair, risk) and compare seven pure rules---baseline,
 stricter, wider, quarantine-to-review, a hybrid quarantine-wider split,
@@ -145,6 +145,7 @@ $\mathrm{tr}(\Delta)$.
   and $0.51$--$0.87$ with negative accuracy; as a sensor-placement criterion
   Fisher~$\Delta I$ is weak and fails under stochastic motion, a negative
   finding we report as such (Section~\ref{sec:imas2-grid}).
+  \item A no-recalibration cross-bed transfer among unit-disk, IBRL, and IMAS$^2$ fails as a boundary: tongyong $2/6$, zhengxiang $0/6$, S1 $0/6$, S2 $3/6$; priority directions unit-disk$\to$IMAS$^2$ and IMAS$^2\to$IBRL both fail (Section~\ref{sec:cross-bed}).
   \item As a current analytic instantiation, we instantiate seven pure rules
   in the Jevometry cleaning council and provide a reproducible harness that
   sweeps a parameter grid, exports CSV/JSON (including parameter-axis loss
@@ -762,6 +763,77 @@ setting. These reported numbers are not directly comparable with our reduced
 re-run (different iteration budget, range, and evaluator). The full pipeline
 on CPU is estimated at over $12$ hours and was not run.
 
+\section{Cross-bed AggregationMap transfer: a failed boundary}
+\label{sec:cross-bed}
+
+\paragraph{Protocol.}
+We ask whether a Fisher-$\Delta I$ ranking learned on one bed transfers to
+another \emph{without recalibration}. The three beds are the synthetic
+unit-disk field, the IBRL control, and the IMAS$^2$ grid world
+(fixed-orientation, stochastic dynamics, small range). The same seven
+AggregationMaps are scored on each bed. Per-bed utilities for unit-disk and
+IBRL come from
+\texttt{unit\_disk\_rule\_utility.csv} /
+\texttt{ibrl\_rule\_utility.csv}: a binary $y_{\mathrm{share}}$ under the
+declared joint at $\theta_{\mathrm{centre}}$, with exact Bayes conditional
+entropy $H$ and accuracy. The IMAS$^2$ utility is the adversary-type $\tau$
+via the existing HMM filter; the definition therefore differs from the
+$y_{\mathrm{share}}$ utilities and we treat the three beds as
+\emph{distinct} scoring domains. Heath's transfer criteria are applied to
+all six directed pairs:
+\emph{tongyong} (universal) requires
+$\rho(\mathrm{src}\,\Delta I,\mathrm{tgt}\,\Delta I)\ge 0.5$,
+$\rho(\mathrm{src}\,\Delta I,\mathrm{tgt}\,H)\ge 0.5$, and
+$\rho(\mathrm{src}\,\Delta I,-\mathrm{tgt}\,\mathrm{acc})\ge 0.5$;
+\emph{zhengxiang} (positive lift) requires the source Fisher pick
+(excluding \texttt{near\_identity}) to beat baseline accuracy on the target
+\emph{and} quarantine to sit in the bottom half by accuracy and by $H$;
+S1/S2 are the corresponding permutation and no-contradiction checks; S3 is
+the already-failed placement negative control from
+Section~\ref{sec:imas2-grid}.
+
+\paragraph{Result: the boundary fails.}
+Overall, tongyong passes on $2/6$ pairs, zhengxiang on $0/6$, S1 on $0/6$,
+and S2 on $3/6$; S3 still fails (Table~\ref{tab:cross-bed}). The
+$\Delta I$-vs-$\Delta I$ ranking transfers somewhat
+($\rho=0.71$--$0.79$ across all six directions), but Heath's tongyong
+requires all three Spearmans and mostly fails on $\Delta I$--$H$ or
+$\Delta I$--accuracy. Zhengxiang never holds: a unit-disk source often
+selects \texttt{quarantine\_wider}, which underperforms baseline on the
+target (e.g.\ $0.736$ vs.\ $0.770$ on IMAS$^2$; $0.907$ vs.\ $1.000$ on
+IBRL), and quarantine is not stably the worst rule across beds. The two
+priority directions---unit-disk$\to$IMAS$^2$ and IMAS$^2\to$IBRL---both
+fail. Only \texttt{ibrl}$\to$\texttt{imas2} and
+\texttt{ibrl}$\to$\texttt{unit\_disk} pass tongyong, and neither yields
+positive lift. S1 fails on every pair, typically because $n=7$ rules
+produce ties and non-significant permutation $p$-values.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{Cross-bed AggregationMap transfer without recalibration. $\rho(\Delta I,\Delta I)$, $\rho(\Delta I,H)$, $\rho(\Delta I,-\mathrm{acc})$ are Spearman correlations of the seven-rule ranking on the source bed against target $\Delta I$, conditional entropy, and negative accuracy. Tongyong / Zhengxiang / S1 / S2 are the binary Heath criteria (Y/N). Fisher pick is the lowest-$\Delta I$ non-\texttt{near\_identity} rule on the source; pick/base is its accuracy vs.\ baseline on the target. UD = unit-disk; IMAS$^2$ = fixed-orientation, stochastic, small-range.}
+\label{tab:cross-bed}
+\begin{tabular}{lrrrcccccl}
+\toprule
+Direction & $\rho_{\Delta I}$ & $\rho_H$ & $\rho_{-\mathrm{acc}}$ & T & Z & S1 & S2 & Fisher pick & pick/base \\
+\midrule
+UD$\to$IMAS$^2$ & 0.79 & 0.57 & 0.45 & N & N & N & N & \texttt{quarantine\_wider} & 0.736/0.770 \\
+IMAS$^2\to$UD & 0.79 & 0.45 & 0.09 & N & N & N & Y & \texttt{wider} & 1.000/1.000 \\
+IMAS$^2\to$IBRL & 0.75 & 0.45 & 0.11 & N & N & N & Y & \texttt{wider} & 1.000/1.000 \\
+IBRL$\to$IMAS$^2$ & 0.75 & 0.64 & 0.55 & Y & N & N & N & \texttt{wider} & 0.768/0.770 \\
+UD$\to$IBRL & 0.71 & 0.47 & 0.21 & N & N & N & N & \texttt{quarantine\_wider} & 0.907/1.000 \\
+IBRL$\to$UD & 0.71 & 0.91 & 0.65 & Y & N & N & Y & \texttt{wider} & 1.000/1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Framing.}
+This is a failed boundary, not a soft caveat. The evidence in this paper
+supports \emph{within-bed} AggregationMap auditing only. We do not claim
+cross-bed generality: a Fisher ranking that is useful on one bed does not,
+without recalibration, select a rule that improves utility on another, and
+the quarantine ranking remains bed-dependent.
+
 \section{Discussion}
 \label{sec:discussion}
 
@@ -832,6 +904,7 @@ additional regularity.
   \item The retrained-policy rows replay recorded states and actions and
   resample observations in our evaluator; they are not fully Bayes-consistent
   with the upstream training rollouts.
+  \item Cross-bed transfer without recalibration fails Heath's tongyong and zhengxiang criteria on most pairs; $n=7$ rules yield frequent ties and non-significant permutation tests for S1. Utility definitions also differ across beds ($y_{\mathrm{share}}$ on unit-disk/IBRL versus adversary-type $\tau$ on IMAS$^2$), so the failed transfer is a boundary of the present evidence, not a claim about every possible shared utility.
   \item Conditional independence is declared, not tested.
   \item We report parameter-axis diagonals and eigenvalues of $\Delta_f$, but
   full CRLB-style reads would still need an observation likelihood contract
@@ -863,7 +936,7 @@ more than baseline, so the quarantine safety valve pays an information cost
 on real data and the full ranking is data-dependent. On the IMAS$^2$ grid
 world the fusion-rule ranking tracks downstream entropy and accuracy, but
 Fisher~$\Delta I$ is a weak sensor-placement criterion; the method's role is
-auditing aggregation, not choosing sensors.
+auditing aggregation, not choosing sensors. Cross-bed AggregationMap transfer without recalibration fails as a boundary---tongyong mostly fails, zhengxiang never holds, and the priority directions unit-disk$\to$IMAS$^2$ and IMAS$^2\to$IBRL both fail---so the paper's support is for within-bed rule auditing only.
 
 Future work includes (i)~scaling the unit-disk and IBRL experiments to more
 motes, centre points, and time windows, (ii)~replacing analytic
@@ -889,7 +962,7 @@ are \texttt{data/imas2\_*} (\texttt{examples/imas2\_grid/}). The grid-world code
 in \texttt{third\_party/imas2\_grid/} is vendored from
 \texttt{AronYoung414/multi-agent-active-perception-grid-world} (commit
 \texttt{0eae156}) under the MIT licence, with the licence file retained;
-credit to the IMAS$^2$ authors~\citep{shi2026imas2}.
+credit to the IMAS$^2$ authors~\citep{shi2026imas2}. Cross-bed transfer artefacts are \texttt{data/cross\_bed\_transfer\_*}.
 This PDF was built with pdflatex from
 \texttt{papers/coord-fisher/main.tex}.
 

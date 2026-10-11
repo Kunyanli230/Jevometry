@@ -69,7 +69,7 @@
 \begin{abstract}
 去中心化传感网络经常面临“最后一英里”协调问题：每个 mote 或边缘智能体只观测到局部读数与局部坐标，但团队必须决定\emph{谁与谁交换什么}，以及在不确定时何时\emph{隔离（quarantine）}报告。感知——由读数与几何诱导的局部范畴分布——与协调——把联合压缩为交换或隔离动作的确定性规则——往往被分开设计。尽管 Dec-POMDP 主动感知与信息驱动传感仔细处理了观察什么，协调层却经常是启发式的，并仅以任务奖励或吞吐量评估。本文提出一个互补问题：\emph{在智能体局部律固定的前提下，哪些与 $\theta$ 无关的协调规则对全局场或事件参数销毁的 Fisher 信息最少？}
 
-我们将协调形式化为 AggregationMap $A=f(Z)$，并用声明乘积联合与其推前之间的数据处理间隙 $I_Z(\theta)-I_A(\theta)\succeq 0$ 量化信息损失。规则按 $\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$ 排序。主要应用是去中心化传感网络。在合成 unit-disk 二维场（$9$ 个 mote）上，核心排序成立且 quarantine-wider 是损失最低的非平凡规则；在 $12$ 个 mote 的 Intel Berkeley Lab（IBRL）真实数据对照上，核心排序同样成立，但两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀要付出信息代价，完整排序取决于数据。在固定传感器的 IMAS$^2$ 网格世界基准上，融合规则的 Fisher 损失排序与条件熵和准确率一致，而 Fisher~$\Delta I$ 被证明是弱的传感器布置准则。作为同一 AggregationMap 纲领的可复现解析说明，我们还使用 Jevometry 三智能体数据清洗委员会（适用性、修复、风险），在证据与歧义网格上比较七条纯规则——baseline、stricter、wider、quarantine-to-review、混合 quarantine-wider 拆分、粗粒度二元规则，以及近恒等上界。在设计中心点，baseline 协调约丢弃 $\mathrm{tr}(I_Z)$ 的一半；将 quarantine 软化为人工复核可挽回该损失的相当一部分；再与不同的 auto-normalize/auto-impute 标签组合，可在完整设计网格上进一步改进。排序
+我们将协调形式化为 AggregationMap $A=f(Z)$，并用声明乘积联合与其推前之间的数据处理间隙 $I_Z(\theta)-I_A(\theta)\succeq 0$ 量化信息损失。规则按 $\mathrm{tr}(\Delta)=\mathrm{tr}(I_Z-I_A)$ 排序。主要应用是去中心化传感网络。在合成 unit-disk 二维场（$9$ 个 mote）上，核心排序成立且 quarantine-wider 是损失最低的非平凡规则；在 $12$ 个 mote 的 Intel Berkeley Lab（IBRL）真实数据对照上，核心排序同样成立，但两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀要付出信息代价，完整排序取决于数据。在固定传感器的 IMAS$^2$ 网格世界基准上，融合规则的 Fisher 损失排序与条件熵和准确率一致，而 Fisher~$\Delta I$ 被证明是弱的传感器布置准则。无重校准的跨床 AggregationMap 排序迁移在六个有向对的多数上未通过 Heath 的通用与正向提升准则（第~\ref{sec:cross-bed}~节），因此证据只支持床内审计。作为同一 AggregationMap 纲领的可复现解析说明，我们还使用 Jevometry 三智能体数据清洗委员会（适用性、修复、风险），在证据与歧义网格上比较七条纯规则——baseline、stricter、wider、quarantine-to-review、混合 quarantine-wider 拆分、粗粒度二元规则，以及近恒等上界。在设计中心点，baseline 协调约丢弃 $\mathrm{tr}(I_Z)$ 的一半；将 quarantine 软化为人工复核可挽回该损失的相当一部分；再与不同的 auto-normalize/auto-impute 标签组合，可在完整设计网格上进一步改进。排序
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
 在每个网格单元上稳定。我们讨论传感智能体交换与隔离策略的设计含义、迫使确定性映射的 API 约束，以及清洗数值作为与 unit-disk 和 IBRL 结果并列的解析说明的角色。配套代码与可复现表格随 Jevometry 仓库一并提供。
@@ -93,6 +93,7 @@ Fisher 信息为这种敏感性提供了局部、可微的语言~\citep{fisher19
   \item 我们将多智能体协调规则比较表述为：在共享声明联合下，按 Fisher 信息损失对与 $\theta$ 无关的聚合映射排序，并以传感网络交换与隔离作为动机性的 AggregationMap 语义（第~\ref{sec:problem}~节）。
   \item 我们将该纲领映射到三层——全局场参数 $\theta$、局部智能体范畴律，以及与 $\theta$ 无关的 AggregationMap——并运行合成 unit-disk 主实验与 IBRL 真实数据对照（第~\ref{sec:sensor-layers}~节与第~\ref{sec:sensor-results}~节）。核心排序在二者上都成立；quarantine-wider 在 unit-disk 上最好（$1.784$），而在 IBRL 上两条 quarantine 规则的损失都高于 baseline（$3.042$、$3.101$，对比 $2.785$）。
   \item 在固定传感器的 IMAS$^2$ 网格世界上，融合规则的 $\mathrm{tr}\Delta I$ 排序与条件熵的 Spearman 相关为 $0.65$--$0.93$，与负准确率为 $0.51$--$0.87$；作为传感器布置准则，Fisher~$\Delta I$ 较弱且在随机运动下失效，我们如实作为负面发现报告（第~\ref{sec:imas2-grid}~节）。
+  \item 在 unit-disk、IBRL 与 IMAS$^2$ 之间无重校准的跨床迁移作为边界失败：通用 $2/6$，正向提升 $0/6$，S1 $0/6$，S2 $3/6$；优先方向 unit-disk$\to$IMAS$^2$ 与 IMAS$^2\to$IBRL 均失败（第~\ref{sec:cross-bed}~节）。
   \item 作为当前解析实例，我们在 Jevometry 清洗委员会中实例化七条纯规则，并提供可复现实验装置：扫描参数网格、导出 CSV/JSON（含参数轴损失对角元与分数损失），并生成发表用图（第~\ref{sec:method}~节）。
   \item 经验上，在设计中心点 baseline 规则约损失 $\mathrm{tr}(I_Z)$ 的 $44\%$；quarantine-to-review 相对 baseline 约削减四分之一损失；混合 quarantine-wider 规则进一步改进（$\mathrm{tr}(\Delta)\approx 2.16$）并在完整网格上优于 quarantine-to-review；二元闸门的损失高于更严的中风险拒绝（第~\ref{sec:experiments}~节）。这些数值用于解析地说明 AggregationMap 审计；传感结果见第~\ref{sec:sensor-results}~节。
   \item 我们讨论该度量如何补充以奖励为中心的 Dec-POMDP 传感协调评估，以及 API 约束（仅确定性映射）对未来可学习协调器的含义（第~\ref{sec:discussion}~节）。
@@ -484,6 +485,45 @@ IMAS$^2$-retrained-S-S & 0.89 & 0.87 \\
 \paragraph{IMAS$^2$ 基线。}
 我们以缩减形式重跑了上游 IMAS$^2$ 训练：每传感器 $150$ 次迭代（论文为 $1000$），按报告的传感器顺序，共耗时 $2051$\,s；五个传感器后的训练熵为 $0.558$。另外，\citet{shi2026imas2} 报告 IMAS$^2$ 在其随机、大范围设置下的条件熵为 $0.493$、准确率为 $86.0\%$。这些报告数值与我们的缩减重跑不可直接比较（迭代预算、范围与评估器均不同）。完整流程在 CPU 上估计需超过 $12$ 小时，未运行。
 
+\section{跨床 AggregationMap 迁移：失败的边界}
+\label{sec:cross-bed}
+
+\paragraph{协议。}
+我们检验在一张床上学到的 Fisher-$\Delta I$ 排序能否\emph{无需重校准}迁移到另一张床。三张床为合成 unit-disk 场、IBRL 对照，以及 IMAS$^2$ 网格世界（固定朝向、随机动态、小范围）。同一组七个 AggregationMap 在每张床上打分。unit-disk 与 IBRL 的逐床效用取自
+\texttt{unit\_disk\_rule\_utility.csv} /
+\texttt{ibrl\_rule\_utility.csv}：在 $\theta_{\mathrm{centre}}$ 处声明联合下的二元 $y_{\mathrm{share}}$，以及精确贝叶斯条件熵 $H$ 与准确率。IMAS$^2$ 效用是经既有 HMM 滤波器得到的对抗类型 $\tau$；因此其定义与 $y_{\mathrm{share}}$ 效用不同，我们将三张床视为\emph{不同的}打分域。Heath 的迁移准则施加于全部六个有向对：
+\emph{通用}要求
+$\rho(\mathrm{src}\,\Delta I,\mathrm{tgt}\,\Delta I)\ge 0.5$、
+$\rho(\mathrm{src}\,\Delta I,\mathrm{tgt}\,H)\ge 0.5$ 与
+$\rho(\mathrm{src}\,\Delta I,-\mathrm{tgt}\,\mathrm{acc})\ge 0.5$；
+\emph{正向提升}要求源床 Fisher pick（排除 \texttt{near\_identity}）在目标床上的准确率超过 baseline，\emph{且} quarantine 按准确率与按 $H$ 均落在下半；
+S1/S2 为相应的置换与无矛盾检查；S3 为第~\ref{sec:imas2-grid}~节中已经失败的布置负对照。
+
+\paragraph{结果：边界失败。}
+总体而言，通用在 $2/6$ 对上通过，正向提升 $0/6$，S1 $0/6$，S2 $3/6$；S3 仍然失败（表~\ref{tab:cross-bed}）。$\Delta I$ 对 $\Delta I$ 的排序有一定迁移性（六个方向上 $\rho=0.71$--$0.79$），但 Heath 的通用要求三项 Spearman 全部达标，多数因 $\Delta I$--$H$ 或 $\Delta I$--准确率不足而失败。正向提升从未成立：以 unit-disk 为源时经常选出 \texttt{quarantine\_wider}，它在目标床上不如 baseline（例如在 IMAS$^2$ 上为 $0.736$ 对 $0.770$；在 IBRL 上为 $0.907$ 对 $1.000$），且 quarantine 并非跨床稳定地最差。两个优先方向——unit-disk$\to$IMAS$^2$ 与 IMAS$^2\to$IBRL——均失败。仅 \texttt{ibrl}$\to$\texttt{imas2} 与 \texttt{ibrl}$\to$\texttt{unit\_disk} 通过通用，且二者均无正向提升。S1 在每一对上都失败，通常是因为 $n=7$ 条规则产生并列以及不显著的置换 $p$ 值。
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{无重校准的跨床 AggregationMap 迁移。$\rho(\Delta I,\Delta I)$、$\rho(\Delta I,H)$、$\rho(\Delta I,-\mathrm{acc})$ 为源床上七条规则排序相对目标床 $\Delta I$、条件熵与负准确率的 Spearman 相关。通用 / 正向 / S1 / S2 为 Heath 二值准则（Y/N）。Fisher pick 为源床上 $\Delta I$ 最低的非 \texttt{near\_identity} 规则；pick/base 为其在目标床上的准确率相对 baseline。UD = unit-disk；IMAS$^2$ = 固定朝向、随机动态、小范围。}
+\label{tab:cross-bed}
+\begin{tabular}{lrrrcccccl}
+\toprule
+方向 & $\rho_{\Delta I}$ & $\rho_H$ & $\rho_{-\mathrm{acc}}$ & 通用 & 正向 & S1 & S2 & Fisher pick & pick/base \\
+\midrule
+UD$\to$IMAS$^2$ & 0.79 & 0.57 & 0.45 & N & N & N & N & \texttt{quarantine\_wider} & 0.736/0.770 \\
+IMAS$^2\to$UD & 0.79 & 0.45 & 0.09 & N & N & N & Y & \texttt{wider} & 1.000/1.000 \\
+IMAS$^2\to$IBRL & 0.75 & 0.45 & 0.11 & N & N & N & Y & \texttt{wider} & 1.000/1.000 \\
+IBRL$\to$IMAS$^2$ & 0.75 & 0.64 & 0.55 & Y & N & N & N & \texttt{wider} & 0.768/0.770 \\
+UD$\to$IBRL & 0.71 & 0.47 & 0.21 & N & N & N & N & \texttt{quarantine\_wider} & 0.907/1.000 \\
+IBRL$\to$UD & 0.71 & 0.91 & 0.65 & Y & N & N & Y & \texttt{wider} & 1.000/1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{定位。}
+这是失败的边界，不是软性免责声明。本文证据只支持\emph{床内} AggregationMap 审计。我们不声称跨床通用性：在一张床上有用的 Fisher 排序，在无重校准的情况下并不能选出在另一张床上提升效用的规则，且 quarantine 的排序仍然取决于床。
+
 \section{讨论}
 \label{sec:discussion}
 
@@ -511,6 +551,7 @@ Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错�
   \item 在 IMAS$^2$ 网格世界上，$\mathrm{tr}\Delta I$ 对逐步 Fisher 信息求和，忽略了跨步的时间相关性。
   \item 在确定性动态下，滑移导数是在边界 slip $=0$ 处的单侧有限差分。
   \item 重训策略行在我们的评估器中重放记录的状态与动作并重新采样观测；它们与上游训练 rollout 并非完全贝叶斯一致。
+  \item 无重校准的跨床迁移在多数对上未通过 Heath 的通用与正向提升准则；$n=7$ 条规则常产生并列，并使 S1 的置换检验不显著。各床的效用定义也不同（unit-disk/IBRL 上的 $y_{\mathrm{share}}$ 对 IMAS$^2$ 上的对抗类型 $\tau$），因此失败的迁移是当前证据的边界，而非关于一切可能共享效用的断言。
   \item 条件独立是声明的，而非检验的。
   \item 我们报告 $\Delta_f$ 的参数轴对角元与特征值，但完整 CRLB 式解读仍需要清洗例子未提供的观测似然契约。
   \item 各规则的动作字母表不同；作为关于 $\theta$ 的保留信息，$\mathrm{tr}(I_A)$ 比较仍然有意义，但把 $|A|$ 当作效用的解释超出范围。
@@ -523,7 +564,7 @@ Baseline 协调后 $\mathrm{tr}(I_Z)$ 下降 $44\%$ 并不意味着系统“错�
 我们提出在共享声明联合下按 Fisher 信息损失对多智能体协调规则排序，并以去中心化传感智能体交换与隔离作为主要的 AggregationMap 叙事。在局部感知固定时，确定性协调器可丢弃联合 Fisher 迹的很大一部分；小的规则编辑（隔离处理、更细动作字母表、风险或邻域阈值）会以易于离线度量的幅度移动该损失。三智能体清洗委员会提供可复现的解析概念验证——包括稳定排序
 $\mathrm{near\text{-}identity}\le\mathrm{wider}\le\mathrm{baseline}
 \le\mathrm{stricter}$
-以及 quarantine-wider 收益。在传感网络上，核心排序在合成 unit-disk 场与 $12$ 个 mote 的 IBRL 对照上均成立；quarantine-wider 在 unit-disk 上最好，但在 IBRL 上两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀在真实数据上要付出信息代价，完整排序取决于数据。在 IMAS$^2$ 网格世界上，融合规则排序与下游熵和准确率一致，但 Fisher~$\Delta I$ 是弱的传感器布置准则；该方法的角色是审计聚合，而非选择传感器。
+以及 quarantine-wider 收益。在传感网络上，核心排序在合成 unit-disk 场与 $12$ 个 mote 的 IBRL 对照上均成立；quarantine-wider 在 unit-disk 上最好，但在 IBRL 上两条 quarantine 规则的损失都高于 baseline，因此 quarantine 安全阀在真实数据上要付出信息代价，完整排序取决于数据。在 IMAS$^2$ 网格世界上，融合规则排序与下游熵和准确率一致，但 Fisher~$\Delta I$ 是弱的传感器布置准则；该方法的角色是审计聚合，而非选择传感器。无重校准的跨床 AggregationMap 迁移作为边界失败——通用大多未通过，正向提升从未成立，优先方向 unit-disk$\to$IMAS$^2$ 与 IMAS$^2\to$IBRL 均失败——因此本文只支持床内规则审计。
 
 未来工作包括：(i)~将 unit-disk 与 IBRL 实验扩展到更多 mote、中心点与时间窗口；(ii)~在适当时用 TypeSafe / 在线决策模型 Jacobian 替换解析智能体；(iii)~带显式条件动作模型的随机协调器；(iv)~在 JAAMAS 风格的经验研究中将 $\mathrm{tr}(\Delta_f)$ 与任务级效用（场估计误差、清洗质量）耦合。
 
@@ -537,7 +578,7 @@ uv run python examples/three_agent_cleaning/compare_rules.py
 uv run python examples/three_agent_cleaning/paper_experiments.py
 \end{verbatim}
 产物落在 \texttt{papers/coord-fisher/data} 与
-\texttt{figures/}。本 PDF 中的清洗委员会表格与图是当前解析说明；unit-disk 与 IBRL 产物为 \texttt{data/unit\_disk\_*} 与 \texttt{data/ibrl\_*}；IMAS$^2$ 网格世界产物为 \texttt{data/imas2\_*}（\texttt{examples/imas2\_grid/}）。\texttt{third\_party/imas2\_grid/} 中的网格世界代码收录自 \texttt{AronYoung414/multi-agent-active-perception-grid-world}（commit \texttt{0eae156}），遵循 MIT 许可并保留许可文件；致谢 IMAS$^2$ 作者~\citep{shi2026imas2}。本 PDF 由 lualatex 自
+\texttt{figures/}。本 PDF 中的清洗委员会表格与图是当前解析说明；unit-disk 与 IBRL 产物为 \texttt{data/unit\_disk\_*} 与 \texttt{data/ibrl\_*}；IMAS$^2$ 网格世界产物为 \texttt{data/imas2\_*}（\texttt{examples/imas2\_grid/}）。\texttt{third\_party/imas2\_grid/} 中的网格世界代码收录自 \texttt{AronYoung414/multi-agent-active-perception-grid-world}（commit \texttt{0eae156}），遵循 MIT 许可并保留许可文件；致谢 IMAS$^2$ 作者~\citep{shi2026imas2}。跨床迁移产物为 \texttt{data/cross\_bed\_transfer\_*}。本 PDF 由 lualatex 自
 \texttt{papers/coord-fisher/main-zh.tex} 构建（英文版见 \texttt{main.tex}）。
 
 \bibliographystyle{plainnat}
