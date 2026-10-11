@@ -11,7 +11,18 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[2]
 DATA = REPO / "papers" / "coord-fisher" / "data"
-sys.path.insert(0, str(REPO / "examples" / "imas2_grid"))
+sys.path.insert(0, str(REPO / "third_party" / "imas2_grid"))
+
+
+def _load_system():
+    """Load examples/imas2_grid/system.py under a unique name (other twins also ship system.py)."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("imas2_grid_system", REPO / "examples" / "imas2_grid" / "system.py")
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
 
 MAIN_FIELDS = ["rule", "policy_type", "dynamics", "sensor_range", "tr_delta_I", "cond_entropy",
                "accuracy", "seed", "n_trajectories", "selection_time_s", "training_time_s"]
@@ -51,7 +62,7 @@ def test_placements_and_summary() -> None:
 
 def test_vectorised_emission_matches_upstream() -> None:
     """Our vectorised sensor model agrees with the vendored IMAS² POMDP emission."""
-    import system as S
+    S = _load_system()
     from pomdp_grid import POMDP
 
     model = S.GridModel("stochastic", "small", tuple(range(9)))
