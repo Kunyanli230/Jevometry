@@ -1,7 +1,7 @@
 {
   "live_run_id": "ticket-sensitivity-live-20261010T143812-0",
   "live_created_utc": "2026-10-10T14:38:16Z",
-  "synthetic_run_id": "ticket-sensitivity-20261010T143810-0",
+  "synthetic_run_id": "ticket-sensitivity-20261011T020612-0",
   "center": {
     "amount": 250.0,
     "wait_hours": 8.0
@@ -62,42 +62,42 @@
       "node": "request_type",
       "amount": 250.0,
       "wait_hours": 8.0,
-      "entropy_nats": 1.0970625372145866,
-      "fisher_trace": 0.0005148198198583143,
-      "fisher_diag_amount": 8.201320509602603e-07,
-      "fisher_diag_wait_hours": 0.000513999687807354,
+      "entropy_nats": 0.7496314131296702,
+      "fisher_trace": 0.07455729746904165,
+      "fisher_diag_amount": 0.00013113358668741452,
+      "fisher_diag_wait_hours": 0.07442616388235423,
       "jacobian_status": "ok",
       "fisher_status": "ok",
       "identifiability": null,
-      "run_id": "ticket-sensitivity-20261010T143810-0"
+      "run_id": "ticket-sensitivity-20261011T020612-0"
     },
     {
       "source": "synthetic",
       "node": "needs_escalation",
       "amount": 250.0,
       "wait_hours": 8.0,
-      "entropy_nats": 0.691898741325677,
-      "fisher_trace": 0.00035323846296164354,
-      "fisher_diag_amount": 2.5536103812278043e-06,
-      "fisher_diag_wait_hours": 0.00035068485258041575,
+      "entropy_nats": 0.47505156369228696,
+      "fisher_trace": 0.04753581238687887,
+      "fisher_diag_amount": 0.0003436351593896079,
+      "fisher_diag_wait_hours": 0.047192177227489265,
       "jacobian_status": "ok",
       "fisher_status": "ok",
       "identifiability": "not_identifiable",
-      "run_id": "ticket-sensitivity-20261010T143810-0"
+      "run_id": "ticket-sensitivity-20261011T020612-0"
     },
     {
       "source": "synthetic",
       "node": "impact",
       "amount": 250.0,
       "wait_hours": 8.0,
-      "entropy_nats": 1.0982420211508854,
-      "fisher_trace": 8.173473470040724e-05,
-      "fisher_diag_amount": 1.3106823770952615e-06,
-      "fisher_diag_wait_hours": 8.042405232331198e-05,
+      "entropy_nats": 1.0201913367268314,
+      "fisher_trace": 0.015932139352410158,
+      "fisher_diag_amount": 0.0002498462732276392,
+      "fisher_diag_wait_hours": 0.015682293079182518,
       "jacobian_status": "ok",
       "fisher_status": "ok",
       "identifiability": null,
-      "run_id": "ticket-sensitivity-20261010T143810-0"
+      "run_id": "ticket-sensitivity-20261011T020612-0"
     }
   ],
   "notes": [

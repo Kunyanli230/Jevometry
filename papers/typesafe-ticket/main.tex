@@ -56,10 +56,17 @@ A fresh live re-run (75 traces, zero failures) yields centre-point entropies
 $H\!\approx\!1.04/0.50/0.31$~nats for
 \texttt{request\_type}/\texttt{needs\_escalation}/\texttt{impact}, with Fisher
 traces $\mathrm{tr}(I)\!\approx\!0.86/0.085/2.61$. Two nodes remain
-rank-deficient (\texttt{not\_identifiable}), and system/action Fisher stay
-\texttt{unsupported} because no joint model is declared and routing is
-deterministic. An offline analytic twin on a $3{\times}3$ grid provides a
-noise-free contrast. Together, the study is a template for honest geometry of
+rank-deficient (\texttt{not\_identifiable}). Live system/action Fisher stay
+\texttt{unsupported} (no live joint; deterministic production routing); the
+offline twin separately declares a product surrogate for coordination-loss
+comparisons. An offline analytic twin on a $3{\times}3$ grid provides a
+noise-free contrast. On that twin we declare a product joint and rank four
+$\theta$-independent surrogate coordination maps by Fisher information loss
+after the action layer ($\mathrm{LOGIT\_SCALE}{=}15$, twin-only probability
+floor), recovering
+$\mathrm{near\text{-}identity}\le\mathrm{baseline}\le\mathrm{stricter}
+\le\mathrm{coarse\text{-}binary}$
+at the centre with a finite $9/9$ grid. Together, the study is a template for honest geometry of
 commercial decision APIs: report entropy when Fisher is unstable, shrink
 stencils before claiming sensitivity, and separate node geometry from joint or
 policy claims. Code, CSV summaries, and figures ship with Jevometry
@@ -94,7 +101,7 @@ ticket parameters, and when is that sensitivity trustworthy?}
 \paragraph{Contributions.}
 \begin{enumerate}
   \item We document a live TypeSafe ticket experiment in Jevometry, including
-  the capability matrix that correctly marks system/action Fisher and
+  the capability matrix that correctly marks live system Fisher and
   likelihood-based inference as unsupported.
   \item We show that stencil choice is first-order: the original live steps
   yield \texttt{step\_stability\_exceeded} on all nodes; shrinking amount and
@@ -103,9 +110,13 @@ ticket parameters, and when is that sensitivity trustworthy?}
   \item We report reproducible centre-point entropy and Fisher summaries from a
   fresh live re-run, with wait-hours diagonals dominating amount, plus an
   offline synthetic grid for noise-free comparison.
+  \item On the offline twin we declare a product joint and rank four
+  $\theta$-independent surrogate coordination rules by
+  $\mathrm{tr}(I_Z-I_A)$, bridging this paper to the companion coordination
+  study without claiming the surrogate is production routing.
   \item We state limitations honestly: rank deficiency on binary/score nodes,
-  no joint model, deterministic policy, and API non-determinism across
-  re-runs.
+  live absence of a joint, deterministic production policy, twin logit-scale
+  tuning, and API non-determinism across re-runs.
 \end{enumerate}
 
 \section{Related work}
@@ -203,11 +214,17 @@ distribution (explicitly not the production routing law).
 
 \subsection{What we refuse to claim}
 
-Without a declared joint $P_\theta(Z_1,Z_2,Z_3)$, system Fisher is
-\texttt{unsupported}/\texttt{no\_joint\_model}. With deterministic routing,
-action Fisher is \texttt{unsupported}/\texttt{deterministic\_policy}. Without
-a sampling contract, CRLB-style inference is refused. These refusals are
-features of the analysis object model, not bugs.
+For the \emph{live} adapter there is still no declared joint
+$P_\theta(Z_1,Z_2,Z_3)$, so live system Fisher remains
+\texttt{unsupported}/\texttt{no\_joint\_model}. Production routing is
+deterministic, so action Fisher stays
+\texttt{unsupported}/\texttt{deterministic\_policy} on paths that inherit
+that semantics. The offline twin additionally exposes an explicit
+\texttt{DECLARED\_PRODUCT} surrogate joint used only for AggregationMap
+information-loss comparisons; that surrogate is not the production
+soft-probability policy. Without a sampling contract, CRLB-style inference is
+refused. These refusals and separations are features of the analysis object
+model, not bugs.
 
 \section{Experiments}
 
@@ -219,6 +236,8 @@ uv sync --locked
 uv run python examples/jev_ticket_sensitivity/run.py
 # optional:
 uv run python examples/jev_ticket_sensitivity/run.py --live
+uv run python examples/jev_ticket_sensitivity/compare_surrogate_rules.py
+uv run python examples/jev_ticket_sensitivity/export_surrogate_action_masses.py
 uv run python examples/jev_ticket_sensitivity/paper_export.py
 \end{verbatim}
 Credentials: environment variables \texttt{TYPESAFE\_API\_KEY} and
@@ -291,17 +310,19 @@ even when stability passes.
 
 \begin{table}[t]
 \centering
-\caption{Capability matrix (identical structure for live and offline).}
+\caption{Capability matrix. Live and offline share node geometry; only the
+offline twin declares a product joint for system Fisher. Action Fisher remains
+unsupported under deterministic production routing.}
 \label{tab:caps}
-\begin{tabular}{lll}
+\begin{tabular}{llll}
 \toprule
-Capability & Status & Reason \\
+Capability & Live & Offline twin & Reason (if unsupported) \\
 \midrule
-distribution\_comparison & ok & --- \\
-node\_geometry & ok & --- \\
-system\_information & unsupported & no\_joint\_model \\
-action\_information & unsupported & deterministic\_policy \\
-inference & unsupported & no\_likelihood\_model \\
+distribution\_comparison & ok & ok & --- \\
+node\_geometry & ok & ok & --- \\
+system\_information & unsupported & ok & live: no\_joint\_model \\
+action\_information & unsupported & unsupported & deterministic\_policy \\
+inference & unsupported & unsupported & no\_likelihood\_model \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -311,17 +332,76 @@ inference & unsupported & no\_likelihood\_model \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/synth_fisher_grid.png}
-\caption{Offline synthetic $\mathrm{tr}(I)$ on the $3{\times}3$ design grid.
-Traces are small relative to live (analytic logits change slowly in raw
-parameter units) but remain \texttt{ok} under the two-scale stencil.}
+\caption{Offline synthetic $\mathrm{tr}(I)$ on the $3{\times}3$ design grid
+under $\mathrm{LOGIT\_SCALE}{=}15$. Absolute scales remain not comparable to
+live, but status is \texttt{ok} under the two-scale stencil.}
 \label{fig:grid}
 \end{figure}
 
-At the shared centre, synthetic entropies are
-$H\!\approx\!1.097/0.692/1.098$ with tiny Fisher traces
-($\mathrm{tr}(I)\!\sim\!10^{-4}$--$10^{-5}$). The live model is a different
-law: absolute Fisher scales are not comparable across providers, but the
-\emph{status} and \emph{relative} wait$>$amount pattern are.
+At the shared centre, after a documented logit-scale factor
+$\mathrm{LOGIT\_SCALE}{=}15$ (smallest scale in
+$\{5,8,10,12,15,20\}$ preserving
+$\mathrm{baseline}\le\mathrm{stricter}\le\mathrm{coarse\text{-}binary}$,
+$\mathrm{tr}(I_Z)\ge 0.02$, and maximal finite grid cells) and a twin-only
+probability floor $10^{-12}$, the synthetic twin remains a methodological
+contrast rather than a live baseline. Absolute Fisher scales are still not
+comparable across providers; status channels and the rule ranking below are
+the transferable objects.
+
+\subsection{Surrogate coordination ranking (offline twin)}
+
+Holding the analytic node laws fixed, we declare a product joint and compare
+four $\theta$-independent AggregationMaps on the same $3{\times}3$ grid:
+\texttt{near\_identity}, \texttt{baseline}, \texttt{stricter}
+(mid-impact routed to priority), and \texttt{coarse\_binary}. This is the
+ticket-domain counterpart of the companion coordination-loss
+study~\citep{li2026coordfisher}; the maps are labelled surrogates and are not
+production soft-probability routing.
+
+\begin{table}[t]
+\centering
+\caption{Offline twin centre $\theta_\star=(250,8)$ under
+$\mathrm{LOGIT\_SCALE}{=}15$. Loss is $\mathrm{tr}(I_Z-I_A)$;
+$\mathrm{tr}(I_Z)\approx 0.138$.}
+\label{tab:surrogate}
+\begin{tabular}{lrrr}
+\toprule
+Rule & $\mathrm{tr}(I_A)$ & $\mathrm{tr}(\Delta)$ & Status \\
+\midrule
+near\_identity & $0.138$ & $\approx 0$ & ok \\
+baseline & $0.052$ & $0.086$ & ok \\
+stricter & $0.052$ & $0.086$ & ok \\
+coarse\_binary & $0.048$ & $0.090$ & ok \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{figures/surrogate_rule_loss_center.png}
+\caption{Surrogate coordination loss at the design centre (offline twin).}
+\label{fig:surrogate-center}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/surrogate_rule_loss_heatmap.png}
+\caption{Surrogate $\mathrm{tr}(\Delta)$ on the amount$\times$wait grid
+(non-identity rules). All nine design points are Fisher-defined after the
+twin probability floor.}
+\label{fig:surrogate-heat}
+\end{figure}
+
+Table~\ref{tab:surrogate} and Figures~\ref{fig:surrogate-center}--\ref{fig:surrogate-heat}
+show a stable centre ordering
+$\mathrm{near\text{-}identity}\le\mathrm{baseline}\le\mathrm{stricter}
+\le\mathrm{coarse\text{-}binary}$
+with every grid cell \texttt{ok}. Pushforward action masses at $\theta_\star$
+show that \texttt{stricter} moves probability from \texttt{standard\_queue}
+into \texttt{priority\_queue} ($\Delta\approx 0.22$). At
+$\mathrm{amount}{=}600$ the twin saturates toward escalate, so rule losses
+collapse toward each other: high-amount cells remain defined but are only weakly
+discriminative---a twin limitation, not a live TypeSafe claim.
 
 \section{Discussion}
 
@@ -344,25 +424,29 @@ two-dimensional $\theta$ are structurally prone to rank deficiency; treating
 incorrect.
 
 \paragraph{Relation to coordination loss.}
-If a council later compresses these three nodes through a deterministic
-aggregator, Fisher loss after the action layer can be measured as in
-\citet{li2026coordfisher}---but only after a joint is declared. The live
-ticket example currently stops at node geometry by design.
+The offline twin now instantiates exactly that programme: a declared product
+joint plus AggregationMaps ranked by $\mathrm{tr}(I_Z-I_A)$, as in
+\citet{li2026coordfisher}. The live TypeSafe adapter still stops at node
+geometry until a joint is declared for the vendor interface; the surrogate
+results must not be read as live action Fisher.
 
 \section{Limitations}
 
 \begin{itemize}
   \item \textbf{Single live centre.} Budget limits live to $\theta_\star$;
-  grid conclusions use the synthetic twin.
+  grid and coordination rankings use the synthetic twin.
   \item \textbf{API non-determinism.} Re-runs change numerical Fisher values;
   we commit summaries, not raw \texttt{traces.jsonl}.
-  \item \textbf{No joint / no action Fisher.} Deterministic routing and absent
-  joint block system-level claims.
+  \item \textbf{Live joint still absent.} Offline \texttt{DECLARED\_PRODUCT}
+  enables surrogate information loss; live system Fisher remains unsupported.
+  Production routing stays deterministic on both paths.
   \item \textbf{Black-box vendor model.} We do not claim internal TypeSafe
   training details; the object of study is the reported distribution interface.
-  \item \textbf{Synthetic scale mismatch.} Analytic logits are slow in raw
-  $(amount,wait)$ units, so absolute $\mathrm{tr}(I)$ is not a live
-  baseline---only a methodological twin.
+  \item \textbf{Twin scale and saturation.} $\mathrm{LOGIT\_SCALE}$ and a
+  twin-only probability floor are tuning knobs: too large a scale saturates
+  high-amount cells; the chosen defaults keep a finite $3{\times}3$ grid but
+  make amount~$600$ only weakly rule-discriminative. Absolute twin
+  $\mathrm{tr}(I)$ is still not a live baseline.
 \end{itemize}
 
 \section{Conclusion}
@@ -371,11 +455,15 @@ Live decision-model APIs can be placed under Fisher geometry if---and
 only if---finite-difference stencils are stable. For TypeSafe ticket triage in
 Jevometry, shrinking amount/wait steps and using a single-scale live stencil
 turns \texttt{step\_stability\_exceeded} into \texttt{ok} node geometry,
-reveals wait-dominated diagonals, and still surfaces rank-deficiency and
-capability refusals that keep joint and policy claims honest. Entropy remains
-the fallback when geometry fails. Future work: declare a product or tree joint
-for live nodes, attach a stochastic routing surrogate for action Fisher, and
-extend the live grid under a larger budget.
+reveals wait-dominated diagonals, and still surfaces rank-deficiency and live
+capability refusals that keep joint and policy claims honest. On the offline
+twin, a declared product joint lets us rank surrogate coordination rules by
+Fisher loss, connecting node sensitivity to the companion aggregation-loss
+programme without conflating surrogate maps with production routing. Entropy
+remains the fallback when geometry fails. Future work: declare a product or
+tree joint for \emph{live} nodes, attach a stochastic routing model for action
+Fisher under a sampling contract, and extend the live grid under a larger
+budget.
 
 \section*{Reproducibility}
 
@@ -405,20 +493,21 @@ report raw (unstandardized) diagonals unless noted.
 
 \paragraph{Synthetic centre comparison.}
 Table~\ref{tab:syncenter} lists offline synthetic metrics at the shared
-centre. Absolute Fisher scales are not comparable to live; the table is a
-methodological twin under the two-scale stencil.
+centre after logit scaling. Absolute Fisher scales are still not comparable to
+live; the table is a methodological twin under the two-scale stencil.
 
 \begin{table}[h]
 \centering
-\caption{Offline synthetic centre $\theta_\star=(250,8)$.}
+\caption{Offline synthetic centre $\theta_\star=(250,8)$ after
+$\mathrm{LOGIT\_SCALE}{=}15$ (committed \texttt{center\_comparison.csv}).}
 \label{tab:syncenter}
 \begin{tabular}{lrrrr}
 \toprule
 Node & $H$ (nats) & $\mathrm{tr}(I)$ & $I_{\mathrm{amt}}$ & $I_{\mathrm{wait}}$ \\
 \midrule
-request\_type & $1.097$ & $5.15{\times}10^{-4}$ & $8.20{\times}10^{-7}$ & $5.14{\times}10^{-4}$ \\
-needs\_escalation & $0.692$ & $3.53{\times}10^{-4}$ & $2.55{\times}10^{-6}$ & $3.51{\times}10^{-4}$ \\
-impact & $1.098$ & $8.17{\times}10^{-5}$ & $1.31{\times}10^{-6}$ & $8.04{\times}10^{-5}$ \\
+request\_type & $0.750$ & $0.0746$ & $1.31{\times}10^{-4}$ & $0.0744$ \\
+needs\_escalation & $0.475$ & $0.0475$ & $3.44{\times}10^{-4}$ & $0.0472$ \\
+impact & $1.020$ & $0.0159$ & $2.50{\times}10^{-4}$ & $0.0157$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -430,8 +519,11 @@ impact & $1.098$ & $8.17{\times}10^{-5}$ & $1.31{\times}10^{-6}$ & $8.04{\times}
   \item \texttt{examples/jev\_ticket\_sensitivity/run.py} --- offline + live entrypoints; stencil shrink.
   \item \texttt{examples/jev\_ticket\_sensitivity/paper\_export.py} --- CSV/JSON/PNG exporter.
   \item \texttt{papers/typesafe-ticket/data/*.csv} --- committed summaries (no API keys, no full traces).
-  \item \texttt{papers/typesafe-ticket/figures/*} --- entropy, Fisher diagonals, synthetic grid, stability status.
-  \item Capability refusals for system/action Fisher are intentional analysis-object boundaries.
+  \item \texttt{papers/typesafe-ticket/figures/*} --- entropy, Fisher diagonals, synthetic grid, stability status,
+  surrogate rule-loss bar and heatmap.
+  \item \texttt{papers/typesafe-ticket/data/surrogate\_*} --- rule-loss grid, action masses, centre summary
+  ($\mathrm{LOGIT\_SCALE}$, $\mathrm{PROB\_FLOOR}$, legacy flip flags).
+  \item Live capability refusals for system Fisher remain intentional; offline surrogate joint is separate.
 \end{itemize}
 
 
