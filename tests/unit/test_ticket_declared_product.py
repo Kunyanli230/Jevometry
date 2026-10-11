@@ -91,3 +91,27 @@ def test_surrogate_rule_loss_ordering_at_center() -> None:
     assert losses["near_identity"] <= losses["baseline"]
     assert losses["near_identity"] <= losses["stricter"]
     assert losses["near_identity"] <= losses["coarse_binary"]
+
+
+def test_surrogate_rule_loss_grid_near_identity_and_order_ratio() -> None:
+    import importlib.util
+
+    script = EXAMPLE / "compare_surrogate_rules.py"
+    spec = importlib.util.spec_from_file_location("compare_surrogate_rules", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    rows = module.evaluate_grid()
+    near = [row for row in rows if row["rule"] == "near_identity"]
+    assert near
+    assert all(row["status"] == "ok" and row["psd"] for row in near)
+    assert all(abs(float(row["tr_loss"])) < 1e-10 for row in near)
+    by_point = {}
+    for row in rows:
+        key = (float(row["amount"]), float(row["wait_hours"]))
+        by_point.setdefault(key, []).append(row)
+    hold = sum(1 for point_rows in by_point.values() if module.center_order_holds(point_rows))
+    # Document empirical stability; require at least centre point holds.
+    centre_rows = by_point[(250.0, 8.0)]
+    assert module.center_order_holds(centre_rows)
+    assert hold >= 1
