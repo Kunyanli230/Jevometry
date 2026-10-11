@@ -110,6 +110,28 @@ Core ordering: `near_identity ≤ wider ≤ baseline ≤ stricter` (64/64 on the
 Paper 2 (TypeSafe live ticket sensitivity) is out of scope here; see
 `papers/NOTE.md` if present.
 
+## Unit-disk sensor twin (phase 1)
+
+Synthetic decentralized sensing frame: θ = `(amplitude, length_scale)` of a
+Gaussian bump on `[0,1]²`; **N=9** motes on a 3×3 grid with unit-disk radius
+`R=0.45`. Three role agents (quality / exchange-mode / uncertainty) induce the
+same joint alphabet as cleaning, so the seven AggregationMaps apply; quarantine
+rules act as the uncertain→isolate / less-exchange safety valve.
+
+```bash
+uv run python examples/unit_disk_sensors/experiments.py
+uv run pytest tests/unit/test_unit_disk_artifacts.py -q
+```
+
+| Path | Role |
+| --- | --- |
+| `examples/unit_disk_sensors/system.py` | Geometry, field, role agents, RULE_SPECS |
+| `examples/unit_disk_sensors/experiments.py` | Centre `information_loss` export |
+| `data/unit_disk_center_loss.csv` | Per-rule centre tr(I_Z), tr(I_A), tr_loss |
+| `data/unit_disk_validation_summary.json` | Order / Fisher-ok / vs cleaning centre |
+
+IBRL (Intel Berkeley Lab) 9–16 mote subsample is **phase 2** (not committed yet).
+
 ## Iris real-data check
 
 ```bash
